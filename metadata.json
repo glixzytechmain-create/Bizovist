@@ -1,0 +1,6 @@
+{
+  "name": "BIZOVIST - AI Manufacturing Intelligence",
+  "description": "AI-native manufacturing discovery and intelligence platform connecting founders with precision manufacturers worldwide.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
