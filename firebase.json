@@ -1,4 +1,18 @@
 {
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "firestore": {
     "databaseId": "ai-studio-bizovistaimanufa-3efa9451-770e-4279-b012-a145b3bf179d",
     "rules": "firestore.rules",
