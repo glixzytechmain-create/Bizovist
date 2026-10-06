@@ -18,10 +18,15 @@ import {
   MapPin,
   ChevronDown,
   Layers,
+  Flame,
+  LayoutGrid,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { MatchScoreBadge } from '../ui/MatchScoreBadge';
 import { EvidenceBadge } from '../ui/EvidenceBadge';
 import { FacilityMapModal } from './FacilityMapModal';
+import { SwipeCardDeck } from './SwipeCardDeck';
+import { aiService } from '../../services/aiService';
 
 export const ManufacturerDiscovery: React.FC = () => {
   const {
@@ -36,6 +41,7 @@ export const ManufacturerDiscovery: React.FC = () => {
     startNewRfq,
   } = useApp();
 
+  const [viewMode, setViewMode] = useState<'tinder' | 'grid'>('tinder');
   const [activeMapMfg, setActiveMapMfg] = useState<Manufacturer | null>(null);
   const [searchQuery, setSearchQuery] = useState(
     'Find manufacturers in India who can make custom aluminium bottles with printing and an MOQ around 20,000.'
@@ -43,6 +49,22 @@ export const ManufacturerDiscovery: React.FC = () => {
   const [selectedIndustry, setSelectedIndustry] = useState<string>('All');
   const [selectedCountry, setSelectedCountry] = useState<string>('All');
   const [onlyVerified, setOnlyVerified] = useState(false);
+
+  const handleExportSheets = async (mfg: Manufacturer) => {
+    try {
+      const res = await aiService.exportProjectToSheets(activeProject || { title: mfg.name });
+      if (res.csvContent) {
+        const blob = new Blob([res.csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = res.downloadFilename || `${mfg.name.toLowerCase().replace(/\s+/g, '-')}-bom.csv`;
+        a.click();
+      }
+    } catch (e) {
+      console.warn('Export error:', e);
+    }
+  };
 
   // Dynamic search and filter
   const filteredManufacturers = useMemo(() => {
@@ -86,7 +108,7 @@ export const ManufacturerDiscovery: React.FC = () => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6 text-left">
       {/* Header and natural search bar */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-xs font-mono text-white/40 uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-[#FF5533]" />
@@ -96,8 +118,38 @@ export const ManufacturerDiscovery: React.FC = () => {
               Precision Manufacturer Discovery
             </h1>
           </div>
-          <div className="text-xs text-white/50 font-mono">
-            {filteredManufacturers.length} Facilities Evaluated
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 p-1 bg-black/40 border border-white/[0.08] rounded-xl shadow-inner">
+              <button
+                type="button"
+                onClick={() => setViewMode('tinder')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'tinder'
+                    ? 'bg-gradient-to-r from-[#FF5533] to-[#FF7A59] text-white shadow-lg shadow-[#FF5533]/30'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-300" />
+                <span>Swipe Deck</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white/15 text-white shadow-md'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Grid Feed</span>
+              </button>
+            </div>
+
+            <div className="text-xs text-white/50 font-mono hidden sm:block">
+              {filteredManufacturers.length} Facilities Evaluated
+            </div>
           </div>
         </div>
 
@@ -156,8 +208,17 @@ export const ManufacturerDiscovery: React.FC = () => {
         </div>
       </div>
 
-      {/* Results Feed */}
-      <div className="space-y-4">
+      {/* Results View: Tinder Swipe Deck vs Classic Grid */}
+      {viewMode === 'tinder' ? (
+        <SwipeCardDeck
+          manufacturers={filteredManufacturers}
+          onOpenDetails={openManufacturerDetail}
+          onOpenMap={(mfg) => setActiveMapMfg(mfg)}
+          onSuperAudit={(mfg) => openAiDrawer({ type: 'manufacturer', data: mfg })}
+          onExportSheets={handleExportSheets}
+        />
+      ) : (
+        <div className="space-y-4">
         {filteredManufacturers.length === 0 ? (
           <div className="p-12 text-center rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-3">
             <Cpu className="w-8 h-8 text-white/30 mx-auto" />
@@ -393,6 +454,7 @@ export const ManufacturerDiscovery: React.FC = () => {
           })
         )}
       </div>
+      )}
 
       {/* Facility Google Maps Modal */}
       <FacilityMapModal
