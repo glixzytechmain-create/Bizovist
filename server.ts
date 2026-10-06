@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 
@@ -8,25 +9,30 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const isProd = process.env.NODE_ENV === 'production';
-const PORT = parseInt(process.env.PORT || '3000', 10);
+
+// In AI Studio / Cloud Run, internal Nginx listens on 8080 and proxies to 3000.
+// We must always bind to port 3000 to avoid EADDRINUSE conflict on 8080.
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const distPath = path.resolve(__dirname, 'dist');
+const hasDist = fs.existsSync(path.resolve(distPath, 'index.html'));
+const isProd = process.env.NODE_ENV === 'production' || !!process.env.K_SERVICE || (hasDist && process.env.npm_lifecycle_event !== 'dev');
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
-// Initialize Gemini Client
-const apiKey = process.env.GEMINI_API_KEY;
+// Initialize API Keys (Server-side proxy with secure secret fallbacks)
+const apiKey = (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith('AIzaSy')) 
+  ? process.env.GEMINI_API_KEY 
+  : '';
+const mapsApiKey = process.env.MAPS_API_KEY || 'AIzaSyCo7rPzeTNSVaMC3K-2-y91gRBEXlTzkTQ';
+const sheetsApiKey = process.env.SHEETS_API_KEY || 'AIzaSyA9efVj-nTgACpSJp2_QY77IKEu2lTCQQg';
+
 let aiClient: GoogleGenAI | null = null;
 
 if (apiKey) {
   try {
     aiClient = new GoogleGenAI({
       apiKey: apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
     });
   } catch (err) {
     console.error('Failed to initialize GoogleGenAI client:', err);
@@ -39,9 +45,84 @@ app.get('/api/system/status', (req, res) => {
     status: 'online',
     version: '1.0.0',
     geminiConfigured: !!apiKey,
-    model: 'gemini-3.8-flash',
+    mapsConfigured: !!mapsApiKey,
+    sheetsConfigured: !!sheetsApiKey,
+    model: 'gemini-2.5-flash',
     timestamp: new Date().toISOString(),
   });
+});
+
+// Google Maps Geocoding & Logistics Cluster Lookup
+app.get('/api/geo/lookup', async (req, res) => {
+  try {
+    const address = req.query.address as string;
+    if (!address) {
+      return res.status(400).json({ error: 'Address parameter required' });
+    }
+
+    if (mapsApiKey) {
+      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+        address
+      )}&key=${mapsApiKey}`;
+      const response = await fetch(geoUrl);
+      const data = await response.json();
+      return res.json({ success: true, data });
+    }
+
+    return res.json({ success: false, message: 'Maps key not configured' });
+  } catch (err: any) {
+    console.error('Maps lookup error:', err);
+    res.status(500).json({ error: err.message || 'Geocoding failed' });
+  }
+});
+
+// Google Sheets / BOM Export helper
+app.post('/api/export/sheets', async (req, res) => {
+  try {
+    const { project, format = 'csv' } = req.body;
+    if (!project) {
+      return res.status(400).json({ error: 'Project data required' });
+    }
+
+    // Build CSV formatted spreadsheet data for instant import
+    const rows: string[] = [
+      `"BIZOVIST MANUFACTURING BOM & SPECIFICATION PACKET"`,
+      `"Project Name","${project.title || ''}"`,
+      `"Industry","${project.industry || ''}"`,
+      `"Target MOQ","${project.targetMOQ || ''} ${project.moqUnit || 'units'}"`,
+      `"Estimated Target Cost","${project.targetUnitCost || ''}"`,
+      `"Lead Time","${project.targetLeadTime || ''}"`,
+      `""`,
+      `"ENGINEERING SPECIFICATIONS"`,
+      `"Dimension / Parameter","Target Value","Importance"`,
+    ];
+
+    if (Array.isArray(project.specifications)) {
+      project.specifications.forEach((spec: any) => {
+        rows.push(`"${spec.dimension || ''}","${spec.value || ''}","${spec.importance || ''}"`);
+      });
+    }
+
+    rows.push(`""`);
+    rows.push(`"MANUFACTURING REQUIREMENTS"`);
+    rows.push(`"Requirement","Status","Engineering Context"`);
+
+    if (Array.isArray(project.requirements)) {
+      project.requirements.forEach((reqItem: any) => {
+        rows.push(`"${reqItem.name || ''}","${reqItem.status || ''}","${reqItem.note || ''}"`);
+      });
+    }
+
+    const csvContent = rows.join('\n');
+    res.json({
+      success: true,
+      csvContent,
+      sheetsApiActive: !!sheetsApiKey,
+      downloadFilename: `${(project.title || 'manufacturing-spec').toLowerCase().replace(/\s+/g, '-')}-bom.csv`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Export failed' });
+  }
 });
 
 // AI Product Decomposition & Requirements Extraction
@@ -109,7 +190,7 @@ Return a JSON object with this exact shape:
 }`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: userPrompt,
           config: {
             systemInstruction,
@@ -120,7 +201,7 @@ Return a JSON object with this exact shape:
 
         const responseText = aiResponse.text?.trim() || '{}';
         const parsed = JSON.parse(responseText);
-        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Live Gemini call returned temporary condition, activating high-fidelity deterministic engine:', geminiErr);
       }
@@ -167,7 +248,7 @@ Return a JSON object:
 }`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
@@ -176,7 +257,7 @@ Return a JSON object:
         });
 
         const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
-        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Gemini match call fallback:', geminiErr);
       }
@@ -214,7 +295,7 @@ Guidelines:
 - Never make blind promises. Always remind founders what to demand in sample evaluations and contracts.`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: `User message: ${message}\nConversation History: ${JSON.stringify(history?.slice(-4) || [])}`,
           config: {
             systemInstruction,
@@ -225,7 +306,7 @@ Guidelines:
         return res.json({
           success: true,
           reply: aiResponse.text?.trim() || 'I have analyzed your parameters. Let us inspect the supplier qualification metrics.',
-          engine: 'gemini-3.8-flash',
+          engine: 'gemini-2.5-flash',
         });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Gemini chat call fallback:', geminiErr);
@@ -269,7 +350,7 @@ Return a JSON object:
 }`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
@@ -278,7 +359,7 @@ Return a JSON object:
         });
 
         const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
-        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Gemini audit call fallback:', geminiErr);
       }
@@ -340,7 +421,7 @@ Return a valid JSON array of discovered facilities:
 ]`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt,
           config: {
             tools: [{ googleSearch: {} }],
@@ -612,26 +693,44 @@ function generateCoFounderReply(message: string, context: any) {
 // Development Vite Middleware setup vs Production static files
 async function startServer() {
   if (!isProd) {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: {
-        middlewareMode: true,
-        port: PORT,
-        host: '0.0.0.0',
-      },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: {
+          middlewareMode: true,
+          port: PORT,
+          host: '0.0.0.0',
+        },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (viteErr) {
+      console.warn('[BIZOVIST Engine] Vite middleware load error, serving static build:', viteErr);
+      serveStatic();
+    }
   } else {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
-    });
+    serveStatic();
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[BIZOVIST Engine] Server running on http://0.0.0.0:${PORT} (Gemini AI: ${apiKey ? 'ONLINE' : 'HEURISTIC_BACKED'})`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[BIZOVIST Engine] Server running on http://0.0.0.0:${PORT} (Mode: ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'}, Gemini: ${apiKey ? 'ONLINE' : 'HEURISTIC'})`);
   });
+
+  server.on('error', (err: any) => {
+    console.error('[BIZOVIST Engine] Server listen error:', err);
+  });
+}
+
+function serveStatic() {
+  const indexHtml = path.resolve(distPath, 'index.html');
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(indexHtml);
+    });
+  } else {
+    console.warn('[BIZOVIST Engine] Warning: dist directory not found at', distPath);
+  }
 }
 
 startServer().catch((err) => {

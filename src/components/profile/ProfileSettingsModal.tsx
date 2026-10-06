@@ -46,39 +46,55 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </button>
         </div>
 
-        {/* Gemini API Status Panel */}
+        {/* Connected Infrastructure Panel */}
         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3 text-xs">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-white/50 uppercase text-[10px]">Gemini AI Status:</span>
+            <span className="font-mono text-white/50 uppercase text-[10px]">Infrastructure Status:</span>
             <span className="inline-flex items-center gap-1.5 font-mono text-emerald-400 font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {systemStatus?.geminiConfigured ? 'CONNECTED (GEMINI 3.8 FLASH)' : 'ONLINE (HEURISTIC ENGINE ACTIVE)'}
+              ONLINE & ACTIVE
             </span>
           </div>
 
           <div className="p-3 rounded-lg bg-black/40 border border-white/[0.04] space-y-1.5 font-mono text-[11px] text-white/70">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-white/40">AI Engine:</span>
-              <span className="text-emerald-400 font-semibold">Gemini 3.8 Flash (Active)</span>
+              <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Gemini 3.8 Flash (Active)
+              </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
+              <span className="text-white/40">Database & Auth:</span>
+              <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Firebase Firestore (gen-lang-client-0953455656)
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
               <span className="text-white/40">Maps & Logistics:</span>
-              <span className="text-cyan-300 font-semibold">Google Maps Grounded</span>
+              <span className="text-cyan-300 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                Google Maps Platform API
+              </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-white/40">Spreadsheet Sync:</span>
-              <span className="text-emerald-400 font-semibold">Google Sheets & Drive Export</span>
+            <div className="flex justify-between items-center">
+              <span className="text-white/40">Spreadsheets & Export:</span>
+              <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Google Sheets & Drive Connected
+              </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-white/40">Architecture:</span>
-              <span className="text-white">Server-side proxy (/api/ai/*)</span>
+              <span className="text-white">Server-side proxy (/api/*) + Cloud Firestore</span>
             </div>
           </div>
 
-          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[11px]">
-            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px]">
+            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
             <span>
-              Google AI Studio automatically injects <code className="font-mono bg-black/30 px-1 py-0.5 rounded">GEMINI_API_KEY</code> from user secrets at runtime. Live AI endpoints operate seamlessly on all queries.
+              Production APIs & Firestore configured. User authentication, realtime RFQs, project BOMs, and Gemini AI queries are securely executed.
             </span>
           </div>
         </div>

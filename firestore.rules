@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 2. Connection validation path (used by getDocFromServer on app boot)
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // 3. User profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() 
+        && request.auth.uid == userId
+        && isValidId(userId)
+        && incoming().uid == request.auth.uid
+        && incoming().email is string
+        && incoming().role in ['founder', 'manufacturer', 'both'];
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && incoming().uid == existing().uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role', 'updatedAt']);
+    }
+
+    // 4. Projects collection
+    match /projects/{projectId} {
+      allow get, list: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow create: if isSignedIn()
+        && isValidId(projectId)
+        && incoming().ownerId == request.auth.uid
+        && incoming().title is string
+        && incoming().title.size() <= 200
+        && incoming().targetMOQ is number;
+      allow update: if isSignedIn()
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId;
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    // 5. RFQ message threads
+    match /messages/{threadId} {
+      allow get, list: if isSignedIn() && (resource == null || resource.data.founderId == request.auth.uid);
+      allow create: if isSignedIn()
+        && isValidId(threadId)
+        && incoming().founderId == request.auth.uid;
+      allow update: if isSignedIn()
+        && (existing().founderId == request.auth.uid || existing().manufacturerId == request.auth.uid);
+    }
+  }
+}

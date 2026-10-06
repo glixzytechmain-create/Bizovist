@@ -4,6 +4,8 @@ export interface SystemStatus {
   status: string;
   version: string;
   geminiConfigured: boolean;
+  mapsConfigured?: boolean;
+  sheetsConfigured?: boolean;
   model: string;
   timestamp: string;
 }
@@ -129,6 +131,33 @@ export const aiService = {
       throw new Error('Failed to run live web search');
     }
 
+    return await res.json();
+  },
+
+  async exportProjectToSheets(project: any): Promise<{
+    success: boolean;
+    csvContent: string;
+    sheetsApiActive: boolean;
+    downloadFilename: string;
+  }> {
+    const res = await fetch('/api/export/sheets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project }),
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to export BOM to Sheets format');
+    }
+
+    return await res.json();
+  },
+
+  async lookupClusterGeo(address: string): Promise<any> {
+    const res = await fetch(`/api/geo/lookup?address=${encodeURIComponent(address)}`);
+    if (!res.ok) {
+      throw new Error('Failed to lookup cluster geography');
+    }
     return await res.json();
   },
 };

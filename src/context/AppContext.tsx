@@ -12,6 +12,17 @@ import {
   INITIAL_MESSAGES,
 } from '../data/seedData';
 import { aiService, SystemStatus } from '../services/aiService';
+import {
+  auth,
+  db,
+  signInWithGoogle,
+  signOutUser,
+  testConnection,
+  handleFirestoreError,
+  OperationType,
+} from '../lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export type AppView =
   | 'landing'
@@ -34,6 +45,9 @@ interface AppContextType {
   setUserRole: (role: UserRole) => void;
   activeView: AppView;
   setActiveView: (view: AppView) => void;
+  currentUser: FirebaseUser | null;
+  loginWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
   projects: Project[];
   activeProject: Project | null;
   setActiveProject: (project: Project | null) => void;
@@ -69,6 +83,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('founder');
   const [activeView, setActiveView] = useState<AppView>('landing');
   const [projects, setProjects] = useState<Project[]>([INITIAL_PROJECT]);
@@ -98,7 +113,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     refreshSystemStatus();
+    testConnection();
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  const loginWithGoogle = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Google Sign-in failed:', err);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOutUser();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
 
   const analyzeIdea = async (prompt: string): Promise<AIAnalysisResult> => {
     setIsInterpreting(true);
@@ -311,6 +349,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUserRole,
         activeView,
         setActiveView,
+        currentUser,
+        loginWithGoogle,
+        logout,
         projects,
         activeProject,
         setActiveProject,

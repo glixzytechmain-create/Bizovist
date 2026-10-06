@@ -1,0 +1,8 @@
+{
+  "firestore": {
+    "databaseId": "ai-studio-bizovistaimanufa-3efa9451-770e-4279-b012-a145b3bf179d",
+    "rules": "firestore.rules",
+    "edition": "ENTERPRISE",
+    "dataAccessMode": "FIRESTORE_NATIVE"
+  }
+}

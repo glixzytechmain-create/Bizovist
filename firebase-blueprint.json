@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role and preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["founder", "manufacturer", "both"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Founder physical product manufacturing project and BOM journey",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "summary": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "maxLength": 50 },
+        "industry": { "type": "string", "maxLength": 120 },
+        "targetMOQ": { "type": "number" },
+        "moqUnit": { "type": "string", "maxLength": 30 },
+        "targetUnitCost": { "type": "string", "maxLength": 100 },
+        "locationPreference": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "title", "targetMOQ"]
+    },
+    "MessageThread": {
+      "title": "MessageThread",
+      "description": "Technical RFQ inquiry conversation between founder and manufacturer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "founderId": { "type": "string", "maxLength": 128 },
+        "manufacturerId": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "lastMessage": { "type": "string", "maxLength": 2000 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "founderId", "manufacturerId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile document indexed by Firebase Auth UID"
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Manufacturing projects owned by founders"
+    },
+    "/messages/{threadId}": {
+      "schema": { "$ref": "#/entities/MessageThread" },
+      "description": "Direct communication thread for RFQs and sample tracking"
+    }
+  }
+}
