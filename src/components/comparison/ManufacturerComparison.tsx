@@ -40,6 +40,7 @@ export const ManufacturerComparison: React.FC = () => {
     openManufacturerDetail,
     startNewRfq,
     activeProject,
+    compareManufacturersGrounded,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'grid' | 'radar'>('grid');
@@ -61,10 +62,7 @@ export const ManufacturerComparison: React.FC = () => {
     if (comparedList.length === 0) return;
     setLoadingVerdict(true);
     try {
-      const result = await aiService.compareManufacturers(
-        comparedList,
-        activeProject
-      );
+      const result = await compareManufacturersGrounded(comparedList);
       setComparisonResult(result);
     } catch (err: any) {
       console.warn('Live Gemini comparison error, using fallback:', err);

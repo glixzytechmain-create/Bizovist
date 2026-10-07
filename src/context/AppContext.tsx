@@ -65,9 +65,16 @@ interface AppContextType {
   latestAnalysis: AIAnalysisResult | null;
   setLatestAnalysis: (analysis: AIAnalysisResult | null) => void;
   systemStatus: SystemStatus | null;
+  // Dedicated multi-step inspection waiting animation state
+  isInspectionOpen: boolean;
+  inspectionMode: 'intent_decomposition' | 'factory_grounding' | 'factory_comparison' | 'bom_refinement';
+  inspectionProductContext: string;
+  closeInspection: () => void;
   analyzeIdea: (prompt: string) => Promise<AIAnalysisResult>;
   refineBomWithAi: (instruction: string) => Promise<AIAnalysisResult>;
   createProjectFromAnalysis: (analysis: AIAnalysisResult) => Project;
+  searchManufacturersGrounded: (query: string) => Promise<Manufacturer[]>;
+  compareManufacturersGrounded: (mfgList: Manufacturer[]) => Promise<any>;
   toggleShortlist: (mfgId: string) => void;
   toggleComparison: (mfgId: string) => void;
   clearComparison: () => void;
@@ -103,6 +110,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isInterpreting, setIsInterpreting] = useState(false);
   const [latestAnalysis, setLatestAnalysis] = useState<AIAnalysisResult | null>(null);
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
+
+  // Dedicated multi-step inspection waiting animation state
+  const [isInspectionOpen, setIsInspectionOpen] = useState(false);
+  const [inspectionMode, setInspectionMode] = useState<
+    'intent_decomposition' | 'factory_grounding' | 'factory_comparison' | 'bom_refinement'
+  >('intent_decomposition');
+  const [inspectionProductContext, setInspectionProductContext] = useState('');
+
+  const closeInspection = () => setIsInspectionOpen(false);
 
   const refreshSystemStatus = async () => {
     try {
@@ -142,32 +158,147 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const analyzeIdea = async (prompt: string): Promise<AIAnalysisResult> => {
     setIsInterpreting(true);
+    setIsInspectionOpen(true);
+    setInspectionMode('intent_decomposition');
+    setInspectionProductContext(prompt);
+
     try {
-      const response = await aiService.interpretProject(prompt, activeProject);
+      // Paced engineering pipeline (min 3.4 seconds)
+      const minDelay = new Promise((resolve) => setTimeout(resolve, 3400));
+      const [response, discoveredMfg] = await Promise.all([
+        aiService.interpretProject(prompt, activeProject),
+        aiService.searchRealWorldManufacturers(prompt, 'India'),
+        minDelay,
+      ]);
+
       setLatestAnalysis(response.data);
+
+      // Create new dynamic project immediately
+      const newProj: Project = {
+        id: `proj-${Date.now()}`,
+        title: response.data.projectName,
+        summary: response.data.summary,
+        status: 'requirements_defined',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        industry: response.data.industry,
+        productCategory: response.data.productCategory,
+        materials: response.data.materials,
+        processes: response.data.processes,
+        machineryNeeded: response.data.machineryNeeded,
+        targetMOQ: response.data.targetMOQ,
+        moqUnit: response.data.moqUnit,
+        targetUnitCost: response.data.targetUnitCostEstimate,
+        targetLeadTime: response.data.targetLeadTime,
+        locationPreference: response.data.locationPreference,
+        components: response.data.components,
+        toolingSummary: response.data.toolingSummary,
+        requirements: (response.data.requirements || []).map((r, idx) => ({
+          id: `req-${Date.now()}-${idx}`,
+          name: r.name,
+          category: 'Core Spec',
+          status: r.status,
+          note: r.note,
+          evidenceType: r.status === 'confirmed' ? 'confirmed' : 'ai_inference',
+        })),
+        specifications: (response.data.specifications || []).map((s, idx) => ({
+          id: `spec-${Date.now()}-${idx}`,
+          dimension: s.dimension,
+          value: s.value,
+          importance: s.importance,
+        })),
+        regulatoryConsiderations: response.data.regulatoryConsiderations || [],
+        keyQuestionsForManufacturers: response.data.clarifyingQuestions || [],
+        shortlistedManufacturerIds: [],
+        rejectedManufacturerIds: [],
+        quotesReceived: 0,
+        samplesReceived: 0,
+      };
+
+      setProjects((prev) => [newProj, ...prev]);
+      setActiveProject(newProj);
+
+      if (discoveredMfg && discoveredMfg.length > 0) {
+        setManufacturers((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newOnes = discoveredMfg.filter((m) => !existingIds.has(m.id));
+          return [...newOnes, ...prev];
+        });
+        setShortlistedManufacturerIds([discoveredMfg[0].id]);
+        if (discoveredMfg.length >= 2) {
+          setComparisonManufacturerIds([discoveredMfg[0].id, discoveredMfg[1].id]);
+        }
+      }
+
+      setIsInspectionOpen(false);
       setActiveView('ai-understand');
       return response.data;
     } catch (err) {
       console.error('Failed to interpret idea:', err);
+      setIsInspectionOpen(false);
       throw err;
     } finally {
       setIsInterpreting(false);
     }
   };
 
+  const searchManufacturersGrounded = async (query: string): Promise<Manufacturer[]> => {
+    setIsInspectionOpen(true);
+    setInspectionMode('factory_grounding');
+    setInspectionProductContext(query);
+    try {
+      const minDelay = new Promise((resolve) => setTimeout(resolve, 3200));
+      const [discovered] = await Promise.all([
+        aiService.searchRealWorldManufacturers(query, activeProject?.locationPreference || 'India'),
+        minDelay,
+      ]);
+
+      if (discovered && discovered.length > 0) {
+        setManufacturers((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newOnes = discovered.filter((m) => !existingIds.has(m.id));
+          return [...newOnes, ...prev];
+        });
+        setShortlistedManufacturerIds((prev) => [
+          discovered[0].id,
+          ...prev.filter((id) => id !== discovered[0].id),
+        ]);
+      }
+      return discovered || [];
+    } finally {
+      setIsInspectionOpen(false);
+    }
+  };
+
+  const compareManufacturersGrounded = async (mfgList: Manufacturer[]): Promise<any> => {
+    setIsInspectionOpen(true);
+    setInspectionMode('factory_comparison');
+    setInspectionProductContext(activeProject?.title || 'Multi-Facility Evaluation');
+    try {
+      const minDelay = new Promise((resolve) => setTimeout(resolve, 3200));
+      const [result] = await Promise.all([
+        aiService.compareManufacturers(mfgList, activeProject),
+        minDelay,
+      ]);
+      return result;
+    } finally {
+      setIsInspectionOpen(false);
+    }
+  };
+
   const refineBomWithAi = async (instruction: string): Promise<AIAnalysisResult> => {
     const baseAnalysis: AIAnalysisResult = latestAnalysis || {
-      projectName: activeProject?.title || 'Insulated Matte-Black Stainless Steel Shaker Bottle',
-      summary: activeProject?.summary || '',
-      industry: activeProject?.industry || 'Consumer Goods & Fitness Hardware',
-      productCategory: activeProject?.productCategory || 'Drinkware & Insulated Containers',
-      materials: activeProject?.materials || ['304 Stainless Steel', 'Polypropylene', 'Silicone'],
-      processes: activeProject?.processes || ['Deep Drawing', 'Vacuum Sealing', 'Powder Coating'],
-      machineryNeeded: activeProject?.machineryNeeded || ['Hydraulic Press', 'Laser Welder'],
-      targetMOQ: activeProject?.targetMOQ || 10000,
+      projectName: activeProject?.title || 'Custom Engineered Product',
+      summary: activeProject?.summary || 'Precision contract manufacturing specifications',
+      industry: activeProject?.industry || 'Industrial & Consumer Manufacturing',
+      productCategory: activeProject?.productCategory || 'Contract Manufacturing',
+      materials: activeProject?.materials || ['Industrial Grade Specification'],
+      processes: activeProject?.processes || ['Precision Production Line'],
+      machineryNeeded: activeProject?.machineryNeeded || ['Automated Production Machinery'],
+      targetMOQ: activeProject?.targetMOQ || 5000,
       moqUnit: activeProject?.moqUnit || 'units',
-      targetUnitCostEstimate: activeProject?.targetUnitCost || '$3.40 - $4.85 / unit',
-      targetLeadTime: activeProject?.targetLeadTime || '6-8 weeks',
+      targetUnitCostEstimate: activeProject?.targetUnitCost || '$2.50 - $6.00 / unit',
+      targetLeadTime: activeProject?.targetLeadTime || '4-6 weeks',
       locationPreference: activeProject?.locationPreference || 'India',
       components: activeProject?.components || [],
       toolingSummary: activeProject?.toolingSummary,
@@ -438,9 +569,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         latestAnalysis,
         setLatestAnalysis,
         systemStatus,
+        isInspectionOpen,
+        inspectionMode,
+        inspectionProductContext,
+        closeInspection,
         analyzeIdea,
         refineBomWithAi,
         createProjectFromAnalysis,
+        searchManufacturersGrounded,
+        compareManufacturersGrounded,
         toggleShortlist,
         toggleComparison,
         clearComparison,

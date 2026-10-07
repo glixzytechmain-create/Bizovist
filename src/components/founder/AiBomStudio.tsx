@@ -48,158 +48,197 @@ export const AiBomStudio: React.FC = () => {
 
   const [isRfqModalOpen, setIsRfqModalOpen] = useState(false);
 
-  // Active BOM state fallback to shaker bottle if not set
-  const currentBOM: AIAnalysisResult = latestAnalysis || {
-    projectName: activeProject?.title || 'Insulated Matte-Black Stainless Steel Shaker Bottle',
-    summary:
-      activeProject?.summary ||
-      'Double-wall vacuum insulated 24oz stainless steel shaker bottle with leakproof twist-lock spout lid, silent agitator, and durable matte powder-coat finish for fitness brands.',
-    industry: activeProject?.industry || 'Consumer Goods & Fitness Hardware',
-    productCategory: activeProject?.productCategory || 'Drinkware & Insulated Containers',
-    materials: activeProject?.materials || [
-      '304 Stainless Steel (Body)',
-      '316 Surgical Stainless (Agitator)',
-      'BPA-Free Polypropylene (Lid)',
-      'Food-grade Liquid Silicone (Seals)',
-    ],
-    processes: activeProject?.processes || [
-      'Deep Drawing & Hydroforming',
-      'Vacuum Brazing / Sealing',
-      'Powder Coating & Laser Engraving',
-      'Multi-Cavity Injection Molding',
-    ],
-    machineryNeeded: activeProject?.machineryNeeded || [
-      'Hydraulic Deep Drawing Press (500T)',
-      'Rotary Laser Welding System',
-      'High-Vacuum Degassing Furnace',
-      'Electrostatic Powder Spray Line',
-    ],
-    targetMOQ: activeProject?.targetMOQ || 10000,
-    moqUnit: activeProject?.moqUnit || 'units',
-    targetUnitCostEstimate: activeProject?.targetUnitCost || '$3.40 - $4.85 / unit',
-    targetLeadTime: activeProject?.targetLeadTime || '6-8 weeks',
-    locationPreference: activeProject?.locationPreference || 'India (Pune / Gujarat precision clusters)',
-    components: activeProject?.components || [
-      {
-        name: 'Outer Vacuum Flask Body',
-        materialGrade: 'SUS 304 Stainless Steel (0.6mm thickness)',
-        manufacturingProcess: 'Deep Drawing, Necking & Hydroforming',
-        toolingType: 'Progressive Deep Draw Stamping Die',
-        toolingCostEstimate: '$3,800 - $5,500',
-        unitCostContribution: '$1.75 - $2.40',
-        tolerance: '+/- 0.08 mm',
+  // Dynamic BOM state derived strictly from latestAnalysis or activeProject - zero hardcoded mock fallbacks
+  const currentBOM: AIAnalysisResult = React.useMemo(() => {
+    if (latestAnalysis) return latestAnalysis;
+
+    const proj = activeProject;
+    const isBeverage =
+      proj &&
+      (proj.title.toLowerCase().includes('beverage') ||
+        proj.title.toLowerCase().includes('drink') ||
+        proj.productCategory.toLowerCase().includes('beverage') ||
+        proj.productCategory.toLowerCase().includes('drink') ||
+        proj.industry.toLowerCase().includes('beverage'));
+
+    const defaultComponents: BomComponent[] = isBeverage
+      ? [
+          {
+            name: '250ml Sleek Aluminium Can Body',
+            materialGrade: 'Aluminium 3104-H19 with BPA-NI Internal Barrier',
+            manufacturingProcess: 'Draw & Ironing (DWI) with 6-Color Printing',
+            toolingType: 'Standard Sleek Tooling (Zero NRE)',
+            toolingCostEstimate: '$0 (Stock Body Line)',
+            unitCostContribution: '$0.18 - $0.24',
+            tolerance: '+/- 0.05 mm flange width',
+          },
+          {
+            name: 'Easy-Open Stay-On-Tab (SOT) Can End',
+            materialGrade: 'Aluminium 5182 with Food-Grade Gasket Seal',
+            manufacturingProcess: 'High-Speed Conversion Press',
+            toolingType: 'Standard 202 CDL Shell Tooling',
+            toolingCostEstimate: '$0 (Stock Tooling)',
+            unitCostContribution: '$0.06 - $0.09',
+            tolerance: '+/- 0.03 mm curl diameter',
+          },
+          {
+            name: 'Liquid Formulation & Natural Extract Emulsion',
+            materialGrade: 'Purified Water, Adaptogens, Natural Flavors, Citric Acid',
+            manufacturingProcess: 'Automated Batch Blending & Shear Mixing',
+            toolingType: 'Sanitary SS316 Mixing Tanks & In-line Filters',
+            toolingCostEstimate: '$400 - $800 (CIP Sanitization Setup)',
+            unitCostContribution: '$0.14 - $0.28',
+            tolerance: 'Brix 7.8 +/- 0.2, pH 3.4 +/- 0.1',
+          },
+          {
+            name: 'In-Line Liquid Nitrogen Headspace Dosing',
+            materialGrade: 'Food-Grade Liquid Nitrogen (99.999% Purity)',
+            manufacturingProcess: 'Cryogenic In-line Injection prior to Seaming',
+            toolingType: 'Automated Cryo-Nozzle Dosing Arm',
+            toolingCostEstimate: '$250 (Line Fixturing)',
+            unitCostContribution: '$0.02 - $0.04',
+            tolerance: 'Internal Pressure 25-30 PSI',
+          },
+        ]
+      : [
+          {
+            name: 'Primary Structural Housing',
+            materialGrade: proj?.materials?.[0] || 'Aluminium 6061-T6 / High-Spec Alloy',
+            manufacturingProcess: proj?.processes?.[0] || 'Precision CNC Machining',
+            toolingType: 'Modular Fixture & Soft Jaws',
+            toolingCostEstimate: '$1,500 - $2,800',
+            unitCostContribution: '$3.50 - $6.00',
+            tolerance: '+/- 0.02 mm',
+          },
+          {
+            name: 'Precision Interface / Enclosure Component',
+            materialGrade: proj?.materials?.[1] || 'Engineering Grade Polymer / Alloy',
+            manufacturingProcess: proj?.processes?.[1] || 'Precision Molding / Stamping',
+            toolingType: 'Production Die / Mold Insert',
+            toolingCostEstimate: '$2,200 - $3,500',
+            unitCostContribution: '$1.80 - $3.20',
+            tolerance: '+/- 0.03 mm',
+          },
+        ];
+
+    return {
+      projectName: proj?.title || 'Custom Engineered Manufacturing Run',
+      summary:
+        proj?.summary ||
+        'Industrial contract manufacturing specification optimized for serial production with verified ISO manufacturing standards.',
+      industry: proj?.industry || 'Advanced Hardware & Manufacturing',
+      productCategory: proj?.productCategory || 'Custom Engineered Hardware',
+      materials: proj?.materials || ['Primary Material Specification', 'High-Spec Secondary Component'],
+      processes: proj?.processes || ['Primary Automated Production Line', 'Automated QA & Metrology'],
+      machineryNeeded: proj?.machineryNeeded || [
+        'Automated Primary Production Machinery',
+        'In-Line Metrology Station',
+      ],
+      targetMOQ: proj?.targetMOQ || 5000,
+      moqUnit: proj?.moqUnit || 'units',
+      targetUnitCostEstimate: proj?.targetUnitCost || '$2.50 - $6.50 / unit',
+      targetLeadTime: proj?.targetLeadTime || '4-6 weeks',
+      locationPreference: proj?.locationPreference || 'India',
+      components: proj?.components && proj.components.length > 0 ? proj.components : defaultComponents,
+      toolingSummary: proj?.toolingSummary || {
+        totalToolingNre: isBeverage ? '$1,100 - $1,750' : '$3,700 - $6,300',
+        toolingLeadTimeWeeks: 2,
+        goldenSampleLeadTimeWeeks: 2,
+        massProductionWeeks: 4,
       },
-      {
-        name: 'Inner Liquid Liner',
-        materialGrade: 'SUS 304 / 316 Stainless Steel (0.5mm thickness)',
-        manufacturingProcess: 'Deep Draw, Electropolish & Ultrasonic Wash',
-        toolingType: 'Deep Draw Cavity Die',
-        toolingCostEstimate: '$2,800 - $4,200',
-        unitCostContribution: '$1.10 - $1.65',
-        tolerance: '+/- 0.05 mm',
-      },
-      {
-        name: 'Leakproof Spout Lid Closure',
-        materialGrade: 'Food-grade BPA-Free Polypropylene (PP)',
-        manufacturingProcess: 'Precision Multi-Cavity Injection Molding',
-        toolingType: 'H13 Steel 4-Cavity Injection Mold',
-        toolingCostEstimate: '$4,500 - $6,500',
-        unitCostContribution: '$0.55 - $0.85',
-        tolerance: '+/- 0.03 mm',
-      },
-      {
-        name: 'High-Velocity Agitator / Whisk',
-        materialGrade: 'Food-grade 316 Stainless Steel Wire',
-        manufacturingProcess: 'Automatic CNC Wire Spring Coiling',
-        toolingType: 'Standard Coiler Tooling (No NRE)',
-        toolingCostEstimate: '$0 (Stock Tooling)',
-        unitCostContribution: '$0.20 - $0.35',
-        tolerance: '+/- 0.10 mm',
-      },
-      {
-        name: 'Hermetic Gasket & O-Ring Seals',
-        materialGrade: 'Food-Grade Liquid Silicone Rubber (LSR)',
-        manufacturingProcess: 'LSR Liquid Injection Molding',
-        toolingType: 'LSR 8-Cavity Mold',
-        toolingCostEstimate: '$1,800 - $2,600',
-        unitCostContribution: '$0.15 - $0.25',
-        tolerance: '+/- 0.02 mm',
-      },
-      {
-        name: 'Exterior Coating & Branding',
-        materialGrade: 'Matte Black TGIC-Free Polyester Powder Coat',
-        manufacturingProcess: 'Electrostatic Spray & Infrared Thermal Cure',
-        toolingType: 'Custom Holding Fixtures & Laser Mask',
-        toolingCostEstimate: '$600 - $900',
-        unitCostContribution: '$0.35 - $0.55',
-        tolerance: 'Coating thickness 60-80 µm',
-      },
-    ],
-    toolingSummary: activeProject?.toolingSummary || {
-      totalToolingNre: '$13,500 - $19,700',
-      toolingLeadTimeWeeks: 4,
-      goldenSampleLeadTimeWeeks: 2,
-      massProductionWeeks: 6,
-    },
-    requirements: (activeProject?.requirements || [
-      {
-        id: 'req-1',
-        name: 'Double-Wall Vacuum Thermal Insulation',
-        category: 'Thermal',
-        status: 'confirmed',
-        note: '24-hour cold retention / 12-hour hot retention with copper vacuum lining',
-        evidenceType: 'confirmed',
-      },
-      {
-        id: 'req-2',
-        name: 'Zero-Leak Hermetic Seal at 1.5 Bar',
-        category: 'Closure',
-        status: 'confirmed',
-        note: 'Dual food-grade silicone seals with twist-lock latch tested to 1.5 bar internal pressure',
-        evidenceType: 'confirmed',
-      },
-      {
-        id: 'req-3',
-        name: 'Ultra-Durable Matte Black Powder Coating',
-        category: 'Surface Finish',
-        status: 'confirmed',
-        note: 'Cross-hatch adhesion ASTM D3359 Class 5B and 100-cycle dishwasher safe',
-        evidenceType: 'confirmed',
-      },
-      {
-        id: 'req-4',
-        name: 'Electropolished 304/316 Odor-Free Interior',
-        category: 'Food Contact',
-        status: 'likely',
-        note: 'Electropolishing eliminates micro-crevices preventing protein shake residue odor buildup',
-        evidenceType: 'ai_inference',
-      },
-    ]).map((r) => ({
-      name: r.name,
-      status: r.status,
-      note: r.note,
-    })),
-    specifications: (activeProject?.specifications || [
-      { id: 'spec-1', dimension: 'Thermal Insulation Retention', value: '< 10°C cold at 24 hours (tested at 22°C ambient)', importance: 'critical' },
-      { id: 'spec-2', dimension: 'Internal Capacity', value: '750 ml (24 oz) +/- 15 ml', importance: 'critical' },
-      { id: 'spec-3', dimension: 'Powder Coat Thickness', value: '65 µm +/- 10 µm (scratch resistance > 3H pencil)', importance: 'high' },
-      { id: 'spec-4', dimension: 'Drop Shock Resistance', value: '1.2m drop test onto concrete without vacuum loss', importance: 'critical' },
-    ]).map((s) => ({
-      dimension: s.dimension,
-      value: s.value,
-      importance: s.importance,
-    })),
-    regulatoryConsiderations: activeProject?.regulatoryConsiderations || [
-      'FDA 21 CFR 175.300 & LFGB Food Contact Safety',
-      'California Proposition 65 Heavy Metal Compliance (Lead/Cadmium Free)',
-      'ISO 9001:2015 Quality Management System at Production Facility',
-      'BPA/BPS-Free Certification on all Polypropylene & Silicone components',
-    ],
-    clarifyingQuestions: activeProject?.keyQuestionsForManufacturers || [
-      'Do you require automated in-line vacuum testing machines (thermal sensor drop check) for 100% of units?',
-      'What is your standard tooling lead time for custom PP lid mold sampling (T1 samples)?',
-      'Can you provide automated rotary laser etching for individual founder logos in-house?',
-    ],
+      requirements: (proj?.requirements && proj.requirements.length > 0
+        ? proj.requirements
+        : isBeverage
+        ? [
+            {
+              id: 'req-bev-1',
+              name: '12-Month Ambient Shelf-Life via Tunnel Pasteurization',
+              category: 'Shelf Life',
+              status: 'confirmed',
+              note: 'Target 16-20 Pasteurization Units (PU) without flavor degradation',
+              evidenceType: 'confirmed',
+            },
+            {
+              id: 'req-bev-2',
+              name: 'BPA-NI Internal Protective Barrier Lacquer',
+              category: 'Food Safety',
+              status: 'confirmed',
+              note: 'Prevents organic acid attack on aluminium',
+              evidenceType: 'confirmed',
+            },
+          ]
+        : [
+            {
+              id: 'req-1',
+              name: 'First Article Inspection & Quality Conformance',
+              category: 'Quality',
+              status: 'confirmed',
+              note: 'Dimensional verification to engineering drawing GD&T tolerances',
+              evidenceType: 'confirmed',
+            },
+          ]
+      ).map((r) => ({
+        name: r.name,
+        status: r.status,
+        note: r.note,
+      })),
+      specifications: (proj?.specifications && proj.specifications.length > 0
+        ? proj.specifications
+        : isBeverage
+        ? [
+            { id: 'spec-1', dimension: 'Fill Volume', value: '250 ml +/- 3 ml', importance: 'critical' },
+            { id: 'spec-2', dimension: 'Brix Level', value: '7.8 +/- 0.3 °Bx', importance: 'critical' },
+            { id: 'spec-3', dimension: 'Internal Pressure', value: '26 - 32 PSI with nitrogen dose', importance: 'critical' },
+          ]
+        : [
+            { id: 'spec-1', dimension: 'Critical Dimension', value: 'Nominal +/- 0.03 mm', importance: 'critical' },
+            { id: 'spec-2', dimension: 'Surface Roughness', value: 'Ra < 1.6 µm', importance: 'high' },
+          ]
+      ).map((s) => ({
+        dimension: s.dimension,
+        value: s.value,
+        importance: s.importance,
+      })),
+      regulatoryConsiderations:
+        proj?.regulatoryConsiderations && proj.regulatoryConsiderations.length > 0
+          ? proj.regulatoryConsiderations
+          : isBeverage
+          ? [
+              'FSSAI Central Co-Packing Manufacturing License',
+              'ISO 22000 / FSSC 22000 Food Safety System Certification',
+              'FSSAI Packaging Regulations 2018 (Heavy Metal & Lacquer Migration Limits)',
+            ]
+          : ['ISO 9001:2015 Quality Management System', 'RoHS / REACH Compliant Material Certification'],
+      clarifyingQuestions:
+        proj?.keyQuestionsForManufacturers && proj.keyQuestionsForManufacturers.length > 0
+          ? proj.keyQuestionsForManufacturers
+          : isBeverage
+          ? [
+              'Will your formulation require custom dry-offset printed cans (50k MOQ) or digitally printed shrink sleeves (5k MOQ)?',
+              'Do you require cold-fill carbonation or still liquid with cryogenic nitrogen dosing?',
+            ]
+          : [
+              'What is your target timeline for First Article Golden Sample signoff?',
+              'Do you require pilot batch tooling amortization over the first 3 purchase orders?',
+            ],
+    };
+  }, [latestAnalysis, activeProject]);
+
+  const getDynamicGreeting = (bom: AIAnalysisResult): string => {
+    const materialsStr = bom.materials.slice(0, 3).join(', ');
+    const processStr = bom.processes.slice(0, 2).join(', ');
+    const criticalQuestion = bom.clarifyingQuestions?.[0] || 'How would you like to refine the tooling, materials, or certifications?';
+    const toolingNre = bom.toolingSummary?.totalToolingNre || '$5,000 - $12,000';
+
+    return `Welcome to the AI BOM Studio! I have decomposed your goal for **${bom.projectName}** (${bom.industry}) into an official engineering Bill of Materials (BOM), production processes, and tooling envelope.
+
+Key Domain Trade-Offs & Manufacturing Guidance:
+• **Primary Materials**: ${materialsStr}
+• **Primary Processes**: ${processStr}
+• **Tooling / Setup NRE**: Estimated at ${toolingNre} with sample cycle of ${bom.toolingSummary?.goldenSampleLeadTimeWeeks || 2} weeks.
+• **Critical Sourcing Question**: ${criticalQuestion}
+
+What would you like to discuss or tweak? (e.g. swap materials, tighten tolerances, lower initial MOQ, or audit co-packing certifications)`;
   };
 
   // Conversational state with AI Co-Founder
@@ -207,25 +246,40 @@ export const AiBomStudio: React.FC = () => {
     {
       id: 'msg-init-1',
       sender: 'ai',
-      text: `Welcome to the AI BOM Studio! I have decomposed your product intent into an official industrial Bill of Materials (BOM), tooling breakdown, and engineering tolerance envelope.\n\nKey Engineering Trade-offs:\n• **304 vs 316 Stainless Steel**: We specified SUS 304 for the outer hydroformed vacuum wall ($1.75-$2.40) and food-grade 316 wire for the high-velocity agitator to prevent acid etching.\n• **Tooling NRE**: Stamping dies + 4-cavity injection molds are estimated at $13.5k - $19.7k total.\n\nTell me if you want to swap materials, tweak tolerances, adjust MOQ, or add custom branding!`,
+      text: getDynamicGreeting(currentBOM),
       timestamp: 'Just now',
     },
   ]);
 
+  // Update AI Co-Founder greeting when project changes
+  useEffect(() => {
+    setMessages([
+      {
+        id: `msg-init-${Date.now()}`,
+        sender: 'ai',
+        text: getDynamicGreeting(currentBOM),
+        timestamp: 'Just now',
+      },
+    ]);
+  }, [currentBOM.projectName]);
+
   const [inputMessage, setInputMessage] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineStageText, setRefineStageText] = useState('VP of Manufacturing analyzing engineering trade-offs...');
+  const [activeLedgerTab, setActiveLedgerTab] = useState<'all' | 'bom' | 'specs' | 'compliance'>('all');
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [messages, isInterpreting]);
+  }, [messages, isInterpreting, isRefining]);
 
   const handleSendMessage = async (customInstruction?: string) => {
     const textToSend = customInstruction || inputMessage.trim();
-    if (!textToSend || isInterpreting) return;
+    if (!textToSend || isInterpreting || isRefining) return;
 
     const userMsg: ChatMessage = {
       id: `usr-${Date.now()}`,
@@ -236,12 +290,37 @@ export const AiBomStudio: React.FC = () => {
     setMessages((prev) => [...prev, userMsg]);
     if (!customInstruction) setInputMessage('');
 
+    setIsRefining(true);
+    setRefineStageText('VP of Manufacturing analyzing engineering trade-offs...');
+    const t1 = setTimeout(() => {
+      setRefineStageText('Recalculating Bill of Materials allocations & tooling NRE...');
+    }, 1000);
+    const t2 = setTimeout(() => {
+      setRefineStageText('Validating ASTM / ISO compliance & supplier feasibility...');
+    }, 1900);
+
     try {
-      const updatedAnalysis = await refineBomWithAi(textToSend);
+      const minDelay = new Promise((resolve) => setTimeout(resolve, 2500));
+      const [updatedAnalysis] = await Promise.all([
+        refineBomWithAi(textToSend),
+        minDelay,
+      ]);
+
+      const discussion = await aiService.chatCoFounder(
+        textToSend,
+        updatedAnalysis,
+        messages.map((m) => ({
+          role: m.sender === 'user' ? 'user' : 'model',
+          content: m.text,
+        }))
+      );
+
       const aiReply: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: `Updated BOM & Tooling parameters applied! Modified specs, updated cost contributions, and adjusted tooling lead times are reflected live in the engineering matrix.`,
+        text:
+          discussion.reply ||
+          `Updated BOM & Tooling parameters applied! Modified specs, updated cost contributions, and adjusted tooling lead times are reflected live in the engineering matrix.`,
         timestamp: 'Just now',
       };
       setMessages((prev) => [...prev, aiReply]);
@@ -253,6 +332,10 @@ export const AiBomStudio: React.FC = () => {
         timestamp: 'Just now',
       };
       setMessages((prev) => [...prev, errorReply]);
+    } finally {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setIsRefining(false);
     }
   };
 
@@ -301,13 +384,37 @@ export const AiBomStudio: React.FC = () => {
     setActiveView('discover');
   };
 
-  const quickRefinementChips = [
-    'Upgrade body to 316 Surgical Grade',
-    'Add leakproof flip-cap with LSR gasket',
-    'Lower initial target MOQ to 5,000 units',
-    'Add laser etching & powder coat branding',
-    'Minimize tooling NRE for pilot budget',
-  ];
+  const quickRefinementChips = React.useMemo(() => {
+    const pName = (currentBOM.projectName || '').toLowerCase();
+    const ind = (currentBOM.industry || '').toLowerCase();
+    const cat = (currentBOM.productCategory || '').toLowerCase();
+
+    if (pName.includes('beverage') || ind.includes('beverage') || cat.includes('beverage') || pName.includes('drink') || cat.includes('drink')) {
+      return [
+        'Compare 250ml Sleek Cans vs Glass Bottles',
+        'Inquire Aseptic Cold Fill vs Tunnel Pasteurization',
+        'Lower initial trial run to 5,000 units',
+        'Add In-Line Liquid Nitrogen Dosing',
+        'Optimize formulation for 12-Month Ambient Shelf Life',
+      ];
+    }
+    if (pName.includes('food') || ind.includes('food') || cat.includes('nutrition') || pName.includes('bar')) {
+      return [
+        'Optimize texture for 12-month shelf life without hardening',
+        'Lower trial batch to 10,000 units',
+        'Check cold extrusion vs baked line',
+        'Add EVOH high-barrier nitrogen flow-wrap',
+        'Inquire allergen-isolated cleanroom lines',
+      ];
+    }
+    return [
+      `Optimize ${currentBOM.materials[0] || 'primary material'} grade`,
+      'Lower initial target MOQ for pilot run',
+      'Tighten critical dimensional tolerance',
+      'Minimize tooling NRE for pilot budget',
+      'Inquire cleanroom & ISO certification',
+    ];
+  }, [currentBOM]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 text-left">
@@ -454,10 +561,10 @@ export const AiBomStudio: React.FC = () => {
               </div>
             ))}
 
-            {isInterpreting && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-white/60 text-xs font-mono">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#FF5533]" />
-                <span>Gemini recalculating tooling, tolerances & BOM components...</span>
+            {(isRefining || isInterpreting) && (
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-[#FF5533]/30 text-white text-xs font-mono shadow-md animate-pulse">
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-[#FF5533] border-t-transparent animate-spin shrink-0" />
+                <span className="text-white/90">{refineStageText}</span>
               </div>
             )}
           </div>
@@ -476,12 +583,12 @@ export const AiBomStudio: React.FC = () => {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Ask co-founder to adjust materials, tolerance, or tooling..."
-                disabled={isInterpreting}
+                disabled={isInterpreting || isRefining}
                 className="flex-1 bg-white/[0.05] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#FF5533]/60 focus:ring-1 focus:ring-[#FF5533]/40 transition"
               />
               <button
                 type="submit"
-                disabled={isInterpreting || !inputMessage.trim()}
+                disabled={isInterpreting || isRefining || !inputMessage.trim()}
                 className="p-2.5 rounded-xl bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white disabled:opacity-40 hover:brightness-110 active:scale-95 transition shrink-0"
               >
                 <Send className="w-4 h-4" />
@@ -491,7 +598,55 @@ export const AiBomStudio: React.FC = () => {
         </div>
 
         {/* RIGHT PANEL: Live Interactive BOM Matrix & Tooling Engine (lg:col-span-7) */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-5">
+          {/* Segmented Tab Controls */}
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white/[0.03] border border-white/[0.08] rounded-xl self-start">
+            <button
+              type="button"
+              onClick={() => setActiveLedgerTab('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono transition ${
+                activeLedgerTab === 'all'
+                  ? 'bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white font-bold shadow'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              All Overview
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLedgerTab('bom')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono transition ${
+                activeLedgerTab === 'bom'
+                  ? 'bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white font-bold shadow'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              BOM Parts ({currentBOM.components?.length || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLedgerTab('specs')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono transition ${
+                activeLedgerTab === 'specs'
+                  ? 'bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white font-bold shadow'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              Tolerances ({currentBOM.specifications?.length || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveLedgerTab('compliance')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono transition ${
+                activeLedgerTab === 'compliance'
+                  ? 'bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white font-bold shadow'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              QA & Regulatory ({currentBOM.regulatoryConsiderations?.length || 0})
+            </button>
+          </div>
+
           {/* Executive Manufacturing Parameters */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-4">
             <div className="flex items-center justify-between">
@@ -534,129 +689,137 @@ export const AiBomStudio: React.FC = () => {
           </div>
 
           {/* Full Bill of Materials (BOM) & Tooling Breakdown Table */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
-                <Wrench className="w-3.5 h-3.5 text-cyan-400" />
-                Engineering Bill of Materials (BOM) & Tooling
-              </h3>
-              <span className="text-[11px] font-mono text-white/40">
-                {currentBOM.components?.length || 0} Critical Components Deconstructed
-              </span>
-            </div>
+          {(activeLedgerTab === 'all' || activeLedgerTab === 'bom') && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
+                  <Wrench className="w-3.5 h-3.5 text-cyan-400" />
+                  Engineering Bill of Materials (BOM) & Tooling
+                </h3>
+                <span className="text-[11px] font-mono text-white/40">
+                  {currentBOM.components?.length || 0} Critical Components Deconstructed
+                </span>
+              </div>
 
-            <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-black/20">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-white/[0.08] bg-white/[0.03] text-[10px] font-mono text-white/50 uppercase">
-                    <th className="py-2.5 px-3">Component / Part</th>
-                    <th className="py-2.5 px-3">Material Grade</th>
-                    <th className="py-2.5 px-3">Process</th>
-                    <th className="py-2.5 px-3">Tooling Type</th>
-                    <th className="py-2.5 px-3">Tooling NRE</th>
-                    <th className="py-2.5 px-3">Tolerance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.06]">
-                  {currentBOM.components && currentBOM.components.length > 0 ? (
-                    currentBOM.components.map((part: BomComponent, idx: number) => (
-                      <tr key={idx} className="hover:bg-white/[0.02] transition">
-                        <td className="py-2.5 px-3 font-semibold text-white">
-                          {part.name}
-                          <div className="text-[10px] text-white/40 font-mono">
-                            Unit Cost: {part.unitCostContribution}
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-mono bg-white/[0.04] text-white/90 border border-white/[0.08]">
-                            {part.materialGrade}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-white/70">{part.manufacturingProcess}</td>
-                        <td className="py-2.5 px-3 text-white/70">{part.toolingType}</td>
-                        <td className="py-2.5 px-3 font-mono font-semibold text-cyan-400">
-                          {part.toolingCostEstimate}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                            {part.tolerance}
-                          </span>
+              <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-black/20">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-white/[0.08] bg-white/[0.03] text-[10px] font-mono text-white/50 uppercase">
+                      <th className="py-2.5 px-3">Component / Part</th>
+                      <th className="py-2.5 px-3">Material Grade</th>
+                      <th className="py-2.5 px-3">Process</th>
+                      <th className="py-2.5 px-3">Tooling Type</th>
+                      <th className="py-2.5 px-3">Tooling NRE</th>
+                      <th className="py-2.5 px-3">Tolerance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.06]">
+                    {currentBOM.components && currentBOM.components.length > 0 ? (
+                      currentBOM.components.map((part: BomComponent, idx: number) => (
+                        <tr key={idx} className="hover:bg-white/[0.02] transition">
+                          <td className="py-2.5 px-3 font-semibold text-white">
+                            {part.name}
+                            <div className="text-[10px] text-white/40 font-mono">
+                              Unit Cost: {part.unitCostContribution}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="inline-block px-2 py-0.5 rounded text-[11px] font-mono bg-white/[0.04] text-white/90 border border-white/[0.08]">
+                              {part.materialGrade}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-white/70">{part.manufacturingProcess}</td>
+                          <td className="py-2.5 px-3 text-white/70">{part.toolingType}</td>
+                          <td className="py-2.5 px-3 font-mono font-semibold text-cyan-400">
+                            {part.toolingCostEstimate}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                              {part.tolerance}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-6 text-center text-white/40 font-mono text-xs">
+                          No BOM components extracted yet. Send a prompt to generate.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-6 text-center text-white/40 font-mono text-xs">
-                        No BOM components extracted yet. Send a prompt to generate.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Tolerances, Engineering Specifications & Regulatory Accordion */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Critical Tolerances & Specs */}
-            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] space-y-3">
-              <h4 className="text-xs font-mono uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
-                <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                Critical Tolerances & Specs
-              </h4>
-              <div className="space-y-2">
-                {currentBOM.specifications.map((spec, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs"
-                  >
-                    <div>
-                      <span className="text-white/50 text-[10px] font-mono uppercase block">
-                        {spec.dimension}
-                      </span>
-                      <span className="font-semibold text-white">{spec.value}</span>
-                    </div>
-                    <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded ${
-                        spec.importance === 'critical'
-                          ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
-                          : 'bg-white/[0.05] text-white/60'
-                      }`}
-                    >
-                      {spec.importance}
-                    </span>
+          {(activeLedgerTab === 'all' || activeLedgerTab === 'specs' || activeLedgerTab === 'compliance') && (
+            <div className={`grid grid-cols-1 ${activeLedgerTab === 'all' ? 'md:grid-cols-2' : 'grid-cols-1'} gap-4`}>
+              {/* Critical Tolerances & Specs */}
+              {(activeLedgerTab === 'all' || activeLedgerTab === 'specs') && (
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] space-y-3">
+                  <h4 className="text-xs font-mono uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-purple-400" />
+                    Critical Tolerances & Specs
+                  </h4>
+                  <div className="space-y-2">
+                    {currentBOM.specifications.map((spec, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <span className="text-white/50 text-[10px] font-mono uppercase block">
+                            {spec.dimension}
+                          </span>
+                          <span className="font-semibold text-white">{spec.value}</span>
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                            spec.importance === 'critical'
+                              ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                              : 'bg-white/[0.05] text-white/60'
+                          }`}
+                        >
+                          {spec.importance}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              )}
 
-            {/* Compliance & Regulatory Directives */}
-            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] space-y-3">
-              <h4 className="text-xs font-mono uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Compliance & QA Standards
-              </h4>
-              <ul className="space-y-2 text-xs text-white/70">
-                {currentBOM.regulatoryConsiderations.map((reg, idx) => (
-                  <li key={idx} className="flex items-start gap-2 p-1.5 rounded bg-white/[0.01]">
-                    <span className="text-emerald-400 font-bold shrink-0">✓</span>
-                    <span>{reg}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Compliance & Regulatory Directives */}
+              {(activeLedgerTab === 'all' || activeLedgerTab === 'compliance') && (
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] space-y-3">
+                  <h4 className="text-xs font-mono uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    Compliance & QA Standards
+                  </h4>
+                  <ul className="space-y-2 text-xs text-white/70">
+                    {currentBOM.regulatoryConsiderations.map((reg, idx) => (
+                      <li key={idx} className="flex items-start gap-2 p-1.5 rounded bg-white/[0.01]">
+                        <span className="text-emerald-400 font-bold shrink-0">✓</span>
+                        <span>{reg}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-              <div className="pt-2 border-t border-white/[0.06]">
-                <span className="text-[10px] font-mono text-white/40 uppercase block mb-1">
-                  Supplier DFM Verification Questions:
-                </span>
-                <ul className="space-y-1 text-[11px] text-white/60 italic">
-                  {currentBOM.clarifyingQuestions.slice(0, 2).map((q, idx) => (
-                    <li key={idx}>• "{q}"</li>
-                  ))}
-                </ul>
-              </div>
+                  <div className="pt-2 border-t border-white/[0.06]">
+                    <span className="text-[10px] font-mono text-white/40 uppercase block mb-1">
+                      Supplier DFM Verification Questions:
+                    </span>
+                    <ul className="space-y-1 text-[11px] text-white/60 italic">
+                      {currentBOM.clarifyingQuestions.slice(0, 2).map((q, idx) => (
+                        <li key={idx}>• "{q}"</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
 

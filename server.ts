@@ -692,10 +692,112 @@ function generateWebSearchFallbacks(query: string) {
 // Deterministic Intelligence Fallbacks
 function generateHeuristicInterpretation(prompt: string) {
   const pLower = prompt.toLowerCase();
-  const isShakerOrInsulated = pLower.includes('shaker') || (pLower.includes('bottle') && (pLower.includes('steel') || pLower.includes('insulated') || pLower.includes('vacuum') || pLower.includes('stainless')));
-  const isBottle = pLower.includes('bottle') || pLower.includes('aluminium') || pLower.includes('can') || pLower.includes('metal') || pLower.includes('container');
+  const isBeverage = pLower.includes('beverage') || pLower.includes('drink') || pLower.includes('juice') || pLower.includes('soda') || pLower.includes('coffee') || pLower.includes('brew') || pLower.includes('tea') || pLower.includes('canning') || pLower.includes('canned') || pLower.includes('water');
+  const isShakerOrInsulated = !isBeverage && (pLower.includes('shaker') || (pLower.includes('bottle') && (pLower.includes('steel') || pLower.includes('insulated') || pLower.includes('vacuum') || pLower.includes('stainless'))));
+  const isBottle = !isBeverage && (pLower.includes('bottle') || pLower.includes('aluminium') || pLower.includes('can') || pLower.includes('metal') || pLower.includes('container'));
   const isElectronics = pLower.includes('pcb') || pLower.includes('electronic') || pLower.includes('hardware') || pLower.includes('sensor') || pLower.includes('device') || pLower.includes('drone') || pLower.includes('gimbal');
-  const isFood = pLower.includes('food') || pLower.includes('bar') || pLower.includes('protein') || pLower.includes('nutrition') || pLower.includes('snack') || pLower.includes('beverage');
+  const isFood = !isBeverage && (pLower.includes('food') || pLower.includes('bar') || pLower.includes('protein') || pLower.includes('nutrition') || pLower.includes('snack'));
+
+  if (isBeverage) {
+    return {
+      projectName: 'Functional Canned RTD Beverage Line',
+      summary: 'Cold-extracted functional beverage line in 250ml sleek aluminium cans with liquid nitrogen dosing, tunnel pasteurization, and secondary 24-can display tray packaging.',
+      industry: 'Beverage & Fast-Moving Consumer Goods',
+      productCategory: 'Ready-to-Drink (RTD) Canned Beverages',
+      materials: [
+        'Reverse Osmosis Water & Botanical Extracts',
+        'Aluminium Can Body (202 Sleek Format, BPA-NI Liner)',
+        'CDL 202 Easy-Open Can Ends',
+        'Liquid Nitrogen (In-line dosing)',
+        'Recycled Corrugated Master Carton',
+      ],
+      processes: [
+        'Continuous High-Shear Blending',
+        'Cross-Flow Membrane Micro-Filtration',
+        'Rotary Counter-Pressure Filling (500 cans/min)',
+        'Liquid Nitrogen Gas Dosing (Rigidity control)',
+        'Tunnel Pasteurization & Seam Camera Inspection',
+      ],
+      machineryNeeded: [
+        'Krones Automated Rotary Can Filler & Seamer',
+        'In-line Liquid Nitrogen Doser',
+        'Tunnel Pasteurizer System',
+        'Optical Double Seam Dimensional Scanner',
+      ],
+      targetMOQ: 10000,
+      moqUnit: 'cans',
+      targetUnitCostEstimate: '$0.52 - $0.85 / can',
+      targetLeadTime: '4-6 weeks',
+      locationPreference: pLower.includes('india') ? 'India (Pune / Maharashtra or Bengaluru Beverage Corridors)' : 'Regional Beverage Hub',
+      components: [
+        {
+          name: '250ml Sleek Aluminium Can Body',
+          materialGrade: 'Alloy 3104 / 3004 with Food-Grade BPA-NI Epoxy Liner',
+          manufacturingProcess: 'DWI (Draw & Wall Ironing) + High-Speed UV Printing',
+          toolingType: 'Standard 202 Sleek Body Tooling (Stock)',
+          toolingCostEstimate: '$0 (Stock Tooling)',
+          unitCostContribution: '$0.18 - $0.24',
+          tolerance: 'Flange width +/- 0.05 mm',
+        },
+        {
+          name: '202 CDL Easy-Open Can End',
+          materialGrade: 'Alloy 5182 with Internal Compound Gasket',
+          manufacturingProcess: 'Conversion Press Stamping & Tab Riveting',
+          toolingType: 'Standard 202 Tooling (Stock)',
+          toolingCostEstimate: '$0 (Stock Tooling)',
+          unitCostContribution: '$0.07 - $0.10',
+          tolerance: 'Buckle pressure >= 6.2 bar',
+        },
+        {
+          name: 'Functional Liquid Blend Formulation',
+          materialGrade: 'Food-Grade Certified Flavors, Extracts & Minerals',
+          manufacturingProcess: 'Automated Batching & Micro-Filtration',
+          toolingType: 'Tank CIP Sanitation & Batch Pilot',
+          toolingCostEstimate: '$1,200 - $1,800 (R&D Sensory Lab)',
+          unitCostContribution: '$0.20 - $0.35',
+          tolerance: 'Brix +/- 0.2, pH +/- 0.1',
+        },
+        {
+          name: '24-Pack Corrugated Transit Tray',
+          materialGrade: 'B-Flute Recycled Kraft Paperboard',
+          manufacturingProcess: 'Flexographic Printing, Rotary Die-Cutting & Shrink Wrap',
+          toolingType: 'Die-cutting Plate & Printing Sleeves',
+          toolingCostEstimate: '$450 - $750',
+          unitCostContribution: '$0.07 - $0.12',
+          tolerance: '+/- 1.0 mm',
+        },
+      ],
+      toolingSummary: {
+        totalToolingNre: '$1,650 - $2,550',
+        toolingLeadTimeWeeks: 3,
+        goldenSampleLeadTimeWeeks: 2,
+        massProductionWeeks: 4,
+      },
+      requirements: [
+        { name: 'FSSAI Central Manufacturing License', status: 'confirmed', note: 'Mandatory central co-packing facility license for beverage distribution in India' },
+        { name: 'pH Acidification Control (pH < 4.4)', status: 'confirmed', note: 'Critical for ambient shelf stability without artificial sodium benzoate preservatives' },
+        { name: 'Liquid Nitrogen Dosing (< 1.5 bar internal pressure)', status: 'likely', note: 'Maintains can rigidity and displaces dissolved oxygen' },
+        { name: 'Double Seam Hermetic Tightness', status: 'likely', note: 'Optical seam overlap inspection on 100% of lots' },
+        { name: 'Accelerated Microbial Incubation (14 days at 37°C)', status: 'needs_confirmation', note: 'Zero bacterial growth quarantine hold prior to commercial release' },
+      ],
+      specifications: [
+        { dimension: 'Finished Can Fill Volume', value: '250 ml +/- 2.5 ml', importance: 'critical' },
+        { dimension: 'Product pH Level', value: '3.8 - 4.2', importance: 'critical' },
+        { dimension: 'Seam Overlap Percentage', value: '>= 75% on optical micrometer', importance: 'critical' },
+        { dimension: 'Internal Can Pressure', value: '1.2 - 1.8 bar at 20°C', importance: 'high' },
+      ],
+      regulatoryConsiderations: [
+        'FSSAI Food Safety and Standards (Beverages) Regulations',
+        'Legal Metrology (Packaged Commodities) Act',
+        'FDA 21 CFR 114 Acidified Foods Compliance (Export Grade)',
+        'GMP & HACCP Certified Beverage Facility',
+      ],
+      clarifyingQuestions: [
+        'Do you plan on carbonated sparkling filling or still nitrogen-dosed cold fill?',
+        'Do you require custom printed aluminium cans (50k+ MOQ) or printed shrink sleeves for lower pilot batches (10k MOQ)?',
+      ],
+    };
+  }
 
   if (isShakerOrInsulated) {
     return {

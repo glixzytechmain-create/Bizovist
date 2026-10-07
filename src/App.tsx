@@ -18,9 +18,16 @@ import { ManufacturerSitePreview } from './components/manufacturer/ManufacturerS
 import { ManufacturerDetailModal } from './components/discovery/ManufacturerDetailModal';
 import { AiCoFounderDrawer } from './components/ai/AiCoFounderDrawer';
 import { ProfileSettingsModal } from './components/profile/ProfileSettingsModal';
+import { InspectionTelemetryModal } from './components/ui/InspectionTelemetryModal';
 
 function AppContent() {
-  const { activeView } = useApp();
+  const {
+    activeView,
+    isInspectionOpen,
+    inspectionMode,
+    inspectionProductContext,
+    closeInspection,
+  } = useApp();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
@@ -59,6 +66,12 @@ function AppContent() {
       <ProfileSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+      <InspectionTelemetryModal
+        isOpen={isInspectionOpen}
+        mode={inspectionMode}
+        productContext={inspectionProductContext}
+        onComplete={closeInspection}
       />
     </div>
   );

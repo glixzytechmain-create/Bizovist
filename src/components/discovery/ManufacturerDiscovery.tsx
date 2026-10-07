@@ -39,12 +39,15 @@ export const ManufacturerDiscovery: React.FC = () => {
     openManufacturerDetail,
     openAiDrawer,
     startNewRfq,
+    searchManufacturersGrounded,
   } = useApp();
 
   const [viewMode, setViewMode] = useState<'tinder' | 'grid'>('tinder');
   const [activeMapMfg, setActiveMapMfg] = useState<Manufacturer | null>(null);
   const [searchQuery, setSearchQuery] = useState(
-    'Find manufacturers in India who can make custom aluminium bottles with printing and an MOQ around 20,000.'
+    activeProject
+      ? `Find verified contract manufacturers for ${activeProject.title}`
+      : ''
   );
   const [selectedIndustry, setSelectedIndustry] = useState<string>('All');
   const [selectedCountry, setSelectedCountry] = useState<string>('All');
@@ -154,24 +157,39 @@ export const ManufacturerDiscovery: React.FC = () => {
         </div>
 
         {/* Natural Language Query Box */}
-        <div className="relative rounded-2xl bg-[#11131E] border border-white/[0.1] shadow-2xl p-3 focus-within:border-[#FF5533]/50 focus-within:ring-2 focus-within:ring-[#FF5533]/20 transition-all">
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const q = searchQuery.trim() || (activeProject ? `${activeProject.productCategory} ${activeProject.industry}` : 'contract manufacturer');
+            await searchManufacturersGrounded(q);
+          }}
+          className="relative rounded-2xl bg-[#11131E] border border-white/[0.1] shadow-2xl p-3 focus-within:border-[#FF5533]/50 focus-within:ring-2 focus-within:ring-[#FF5533]/20 transition-all"
+        >
           <div className="flex items-center gap-3 px-2">
             <Search className="w-4 h-4 text-[#FF5533] shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Query facilities in natural language (e.g. 'Find facilities in India with 5-axis CNC and MOQ under 1,000')..."
+              placeholder="Query facilities in natural language (e.g. 'Find verified beverage contract canning plants in India')..."
               className="w-full bg-transparent border-0 text-white placeholder-white/30 text-xs sm:text-sm focus:ring-0 focus:outline-none"
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
                 className="text-xs text-white/40 hover:text-white px-2 py-1 font-mono"
               >
                 Clear
               </button>
             )}
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white shadow-md hover:brightness-110 active:scale-95 transition shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+              <span>Grounded Scan</span>
+            </button>
           </div>
 
           {/* Quick Filter Bar */}
@@ -205,7 +223,7 @@ export const ManufacturerDiscovery: React.FC = () => {
               </label>
             </div>
           </div>
-        </div>
+        </form>
       </div>
 
       {/* Results View: Tinder Swipe Deck vs Classic Grid */}
