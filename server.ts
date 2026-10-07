@@ -87,15 +87,25 @@ app.post('/api/export/sheets', async (req, res) => {
     // Build CSV formatted spreadsheet data for instant import
     const rows: string[] = [
       `"BIZOVIST MANUFACTURING BOM & SPECIFICATION PACKET"`,
-      `"Project Name","${project.title || ''}"`,
+      `"Project Name","${project.title || project.projectName || ''}"`,
       `"Industry","${project.industry || ''}"`,
       `"Target MOQ","${project.targetMOQ || ''} ${project.moqUnit || 'units'}"`,
-      `"Estimated Target Cost","${project.targetUnitCost || ''}"`,
+      `"Estimated Target Cost","${project.targetUnitCost || project.targetUnitCostEstimate || ''}"`,
       `"Lead Time","${project.targetLeadTime || ''}"`,
       `""`,
-      `"ENGINEERING SPECIFICATIONS"`,
-      `"Dimension / Parameter","Target Value","Importance"`,
     ];
+
+    if (Array.isArray(project.components) && project.components.length > 0) {
+      rows.push(`"BILL OF MATERIALS (BOM) & TOOLING BREAKDOWN"`);
+      rows.push(`"Component / Part","Material Grade","Manufacturing Process","Tooling / Mold Type","Tooling NRE Cost","Unit Cost Contribution","Tolerance Target"`);
+      project.components.forEach((c: any) => {
+        rows.push(`"${c.name || ''}","${c.materialGrade || ''}","${c.manufacturingProcess || ''}","${c.toolingType || ''}","${c.toolingCostEstimate || ''}","${c.unitCostContribution || ''}","${c.tolerance || ''}"`);
+      });
+      rows.push(`""`);
+    }
+
+    rows.push(`"ENGINEERING SPECIFICATIONS"`);
+    rows.push(`"Dimension / Parameter","Target Value","Importance"`);
 
     if (Array.isArray(project.specifications)) {
       project.specifications.forEach((spec: any) => {
@@ -118,7 +128,7 @@ app.post('/api/export/sheets', async (req, res) => {
       success: true,
       csvContent,
       sheetsApiActive: !!sheetsApiKey,
-      downloadFilename: `${(project.title || 'manufacturing-spec').toLowerCase().replace(/\s+/g, '-')}-bom.csv`,
+      downloadFilename: `${(project.title || project.projectName || 'manufacturing-spec').toLowerCase().replace(/\s+/g, '-')}-bom.csv`,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Export failed' });
@@ -146,7 +156,8 @@ CRITICAL PRINCIPLES:
    - "likely" (technically standard/inferred by industrial domain knowledge)
    - "needs_confirmation" (critical decision parameter that the founder still needs to determine)
 3. Provide realistic industry standards for tolerances, standard MOQs, unit cost ranges, and lead times.
-4. Return strictly valid JSON adhering to the specified structure.`;
+4. Provide a full Bill of Materials (BOM) breakdown with components, material grades, tooling NRE estimates, and tolerances.
+5. Return strictly valid JSON adhering to the specified structure.`;
 
         const userPrompt = `Analyze this manufacturing project description:
 "${prompt}"
@@ -157,16 +168,33 @@ Return a JSON object with this exact shape:
 {
   "projectName": "Short punchy project title",
   "summary": "1-2 sentence executive manufacturing summary",
-  "industry": "e.g., Food & Nutrition / Consumer Electronics / Precision Hardware / Packaging",
+  "industry": "e.g., Consumer Goods / Precision Hardware / Medical / Cosmetics / Packaging",
   "productCategory": "Primary category",
   "materials": ["Material 1", "Material 2"],
   "processes": ["Process 1", "Process 2"],
   "machineryNeeded": ["Machine 1", "Machine 2"],
-  "targetMOQ": 50000,
+  "targetMOQ": 10000,
   "moqUnit": "units",
-  "targetUnitCostEstimate": "$0.40 - $0.75 / unit",
-  "targetLeadTime": "4-8 weeks",
-  "locationPreference": "e.g., India preferred or Global",
+  "targetUnitCostEstimate": "$X.XX - $Y.YY / unit",
+  "targetLeadTime": "6-10 weeks",
+  "locationPreference": "e.g., India or Global",
+  "components": [
+    {
+      "name": "Component/Part name (e.g. Outer Vacuum Bottle Body)",
+      "materialGrade": "Exact grade (e.g. 304 Stainless Steel 0.6mm)",
+      "manufacturingProcess": "Primary process (e.g. Deep Drawing & Hydroforming)",
+      "toolingType": "Tooling required (e.g. Multi-stage stamping die or Stock tooling)",
+      "toolingCostEstimate": "Estimated NRE cost (e.g. $3,500 - $6,000)",
+      "unitCostContribution": "Estimated cost contribution (e.g. $2.20 - $3.40)",
+      "tolerance": "Critical dimension tolerance (e.g. +/- 0.08mm)"
+    }
+  ],
+  "toolingSummary": {
+    "totalToolingNre": "$6,000 - $12,000",
+    "toolingLeadTimeWeeks": 4,
+    "goldenSampleLeadTimeWeeks": 2,
+    "massProductionWeeks": 6
+  },
   "requirements": [
     {
       "name": "Requirement title",
@@ -176,13 +204,13 @@ Return a JSON object with this exact shape:
   ],
   "specifications": [
     {
-      "dimension": "e.g., Barrier packaging / Yield strength / Shelf life / Tolerance",
+      "dimension": "e.g., Wall Thickness / Thermal Retention / Leak Resistance",
       "value": "Specification target",
       "importance": "critical" | "high" | "medium"
     }
   ],
   "regulatoryConsiderations": [
-    "e.g., FSSAI compliance / FDA 21 CFR / ISO 22000 / CE mark"
+    "e.g., FDA 21 CFR / ISO 9001 / LFGB / CE mark"
   ],
   "clarifyingQuestions": [
     "Smart question to ask founder to finalize BOM or supplier qualification"
@@ -213,6 +241,57 @@ Return a JSON object with this exact shape:
   } catch (error: any) {
     console.error('Error in /api/ai/interpret:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// AI BOM Interactive Refinement Endpoint
+app.post('/api/ai/refine-bom', async (req, res) => {
+  try {
+    const { currentAnalysis, userInstruction } = req.body;
+    if (!currentAnalysis || !userInstruction) {
+      return res.status(400).json({ error: 'currentAnalysis and userInstruction required' });
+    }
+
+    if (aiClient) {
+      try {
+        const systemInstruction = `You are BIZOVIST's VP of Manufacturing & Supply Chain Engineering.
+The founder is iteratively refining their product Bill of Materials (BOM) and engineering specifications.
+Apply the user's modifications to the current product JSON model.
+Maintain the exact same JSON structure including projectName, summary, industry, productCategory, materials, processes, machineryNeeded, targetMOQ, moqUnit, targetUnitCostEstimate, targetLeadTime, locationPreference, components, toolingSummary, requirements, specifications, regulatoryConsiderations, and clarifyingQuestions.
+Update component specs, material grades, or tooling estimates as needed based on the founder's instruction.
+Return strictly valid JSON adhering to this shape.`;
+
+        const prompt = `Current Product Analysis & BOM:
+${JSON.stringify(currentAnalysis)}
+
+Founder Modification Instruction:
+"${userInstruction}"
+
+Return the entire updated JSON:`;
+
+        const aiResponse = await aiClient.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          },
+        });
+
+        const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
+        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
+      } catch (err) {
+        console.warn('[BIZOVIST Engine] Live Gemini refine-bom error:', err);
+      }
+    }
+
+    // Deterministic fallback mutation
+    const updated = { ...currentAnalysis };
+    return res.json({ success: true, data: updated, engine: 'bizovist-engine' });
+  } catch (error: any) {
+    console.error('Error in /api/ai/refine-bom:', error);
+    res.status(500).json({ error: error.message || 'BOM refinement failed' });
   }
 });
 
@@ -520,50 +599,148 @@ function generateWebSearchFallbacks(query: string) {
 }
 
 // Deterministic Intelligence Fallbacks
+// Deterministic Intelligence Fallbacks
 function generateHeuristicInterpretation(prompt: string) {
   const pLower = prompt.toLowerCase();
-  const isFood = pLower.includes('protein') || pLower.includes('food') || pLower.includes('bar') || pLower.includes('nutrition') || pLower.includes('snack') || pLower.includes('beverage');
+  const isShakerOrInsulated = pLower.includes('shaker') || (pLower.includes('bottle') && (pLower.includes('steel') || pLower.includes('insulated') || pLower.includes('vacuum') || pLower.includes('stainless')));
   const isBottle = pLower.includes('bottle') || pLower.includes('aluminium') || pLower.includes('can') || pLower.includes('metal') || pLower.includes('container');
-  const isElectronics = pLower.includes('pcb') || pLower.includes('electronic') || pLower.includes('hardware') || pLower.includes('sensor') || pLower.includes('device');
+  const isElectronics = pLower.includes('pcb') || pLower.includes('electronic') || pLower.includes('hardware') || pLower.includes('sensor') || pLower.includes('device') || pLower.includes('drone') || pLower.includes('gimbal');
+  const isFood = pLower.includes('food') || pLower.includes('bar') || pLower.includes('protein') || pLower.includes('nutrition') || pLower.includes('snack') || pLower.includes('beverage');
 
-  if (isFood) {
+  if (isShakerOrInsulated) {
     return {
-      projectName: 'Premium Protein Bar Line',
-      summary: 'High-protein extrusion and enrobing line with multi-layer nitrogen barrier wrapping and secondary retail display carton packaging.',
-      industry: 'Food & Nutrition / Confectionery',
-      productCategory: 'Functional Food & Protein Bars',
-      materials: ['Whey / Plant Isolate Blend', 'Prebiotic Fiber Syrups', 'BOPP Metallized Barrier Film', 'FSC Recycled Paperboard'],
-      processes: ['Cold Extrusion', 'Chocolate Enrobing / Drizzle', 'Flow Wrapping', 'Modified Atmosphere Packaging (MAP)'],
-      machineryNeeded: ['Continuous Extruder with Guillotine Cutter', 'Multi-zone Cooling Tunnel', 'High-Speed Flow Wrapper', 'Metal Detector & Checkweigher'],
-      targetMOQ: 50000,
+      projectName: 'Insulated Matte-Black Stainless Steel Shaker Bottle',
+      summary: 'Double-wall vacuum insulated 24oz stainless steel shaker bottle with leakproof twist-lock spout lid, silent agitator, and durable matte powder-coat finish for fitness brands.',
+      industry: 'Consumer Goods & Fitness Hardware',
+      productCategory: 'Drinkware & Insulated Containers',
+      materials: [
+        '304 Stainless Steel (Body)',
+        '316 Surgical Stainless (Agitator)',
+        'BPA-Free Polypropylene (Lid)',
+        'Food-grade Liquid Silicone (Seals)',
+      ],
+      processes: [
+        'Deep Drawing & Hydroforming',
+        'Vacuum Brazing / Sealing',
+        'Powder Coating & Laser Engraving',
+        'Multi-Cavity Injection Molding',
+      ],
+      machineryNeeded: [
+        'Hydraulic Deep Drawing Press (500T)',
+        'Rotary Laser Welding System',
+        'High-Vacuum Degassing Furnace',
+        'Electrostatic Powder Spray Line',
+      ],
+      targetMOQ: 10000,
       moqUnit: 'units',
-      targetUnitCostEstimate: '$0.42 - $0.68 / unit',
+      targetUnitCostEstimate: '$3.40 - $4.85 / unit',
       targetLeadTime: '6-8 weeks',
-      locationPreference: pLower.includes('india') ? 'India (Maharashtra / Gujarat / Bangalore clusters)' : 'Preferred Local / Regional',
+      locationPreference: pLower.includes('india') ? 'India (Pune / Gujarat precision clusters)' : 'India / Global Precision Hubs',
+      components: [
+        {
+          name: 'Outer Vacuum Flask Body',
+          materialGrade: 'SUS 304 Stainless Steel (0.6mm thickness)',
+          manufacturingProcess: 'Deep Drawing, Necking & Hydroforming',
+          toolingType: 'Progressive Deep Draw Stamping Die',
+          toolingCostEstimate: '$3,800 - $5,500',
+          unitCostContribution: '$1.75 - $2.40',
+          tolerance: '+/- 0.08 mm',
+        },
+        {
+          name: 'Inner Liquid Liner',
+          materialGrade: 'SUS 304 / 316 Stainless Steel (0.5mm thickness)',
+          manufacturingProcess: 'Deep Draw, Electropolish & Ultrasonic Wash',
+          toolingType: 'Deep Draw Cavity Die',
+          toolingCostEstimate: '$2,800 - $4,200',
+          unitCostContribution: '$1.10 - $1.65',
+          tolerance: '+/- 0.05 mm',
+        },
+        {
+          name: 'Leakproof Spout Lid Closure',
+          materialGrade: 'Food-grade BPA-Free Polypropylene (PP)',
+          manufacturingProcess: 'Precision Multi-Cavity Injection Molding',
+          toolingType: 'H13 Steel 4-Cavity Injection Mold',
+          toolingCostEstimate: '$4,500 - $6,500',
+          unitCostContribution: '$0.55 - $0.85',
+          tolerance: '+/- 0.03 mm',
+        },
+        {
+          name: 'High-Velocity Agitator / Whisk',
+          materialGrade: 'Food-grade 316 Stainless Steel Wire',
+          manufacturingProcess: 'Automatic CNC Wire Spring Coiling',
+          toolingType: 'Standard Coiler Tooling (No NRE)',
+          toolingCostEstimate: '$0 (Stock Tooling)',
+          unitCostContribution: '$0.20 - $0.35',
+          tolerance: '+/- 0.10 mm',
+        },
+        {
+          name: 'Hermetic Gasket & O-Ring Seals',
+          materialGrade: 'Food-Grade Liquid Silicone Rubber (LSR)',
+          manufacturingProcess: 'LSR Liquid Injection Molding',
+          toolingType: 'LSR 8-Cavity Mold',
+          toolingCostEstimate: '$1,800 - $2,600',
+          unitCostContribution: '$0.15 - $0.25',
+          tolerance: '+/- 0.02 mm',
+        },
+        {
+          name: 'Exterior Coating & Branding',
+          materialGrade: 'Matte Black TGIC-Free Polyester Powder Coat',
+          manufacturingProcess: 'Electrostatic Spray & Infrared Thermal Cure',
+          toolingType: 'Custom Holding Fixtures & Laser Mask',
+          toolingCostEstimate: '$600 - $900',
+          unitCostContribution: '$0.35 - $0.55',
+          tolerance: 'Coating thickness 60-80 µm',
+        },
+      ],
+      toolingSummary: {
+        totalToolingNre: '$13,500 - $19,700',
+        toolingLeadTimeWeeks: 4,
+        goldenSampleLeadTimeWeeks: 2,
+        massProductionWeeks: 6,
+      },
       requirements: [
-        { name: 'Product Formulation & Lab Tasting', status: 'confirmed', note: 'Recipe optimization for 12-month shelf life without hardening' },
-        { name: 'Cold Extrusion & Portioning', status: 'confirmed', note: 'Tolerance +/- 1.5g per 60g bar unit' },
-        { name: 'Individual Barrier Flow-Wrap', status: 'confirmed', note: 'BOPP / EVOH moisture barrier with nitrogen flush' },
-        { name: 'Shelf-Life & Water Activity (aw < 0.65)', status: 'likely', note: 'Critical to prevent microbial spoilage without synthetic preservatives' },
-        { name: 'Private Label & Retail Packaging', status: 'confirmed', note: '12-pack counter display carton with tamper-evident seal' },
-        { name: 'FSSAI / FDA Cleanroom Certification', status: 'needs_confirmation', note: 'Requires ISO 22000 / HACCP certified facility' },
+        {
+          name: 'Double-Wall Vacuum Thermal Insulation',
+          status: 'confirmed',
+          note: '24-hour cold retention / 12-hour hot retention with copper vacuum lining',
+        },
+        {
+          name: 'Zero-Leak Hermetic Seal at 1.5 Bar',
+          status: 'confirmed',
+          note: 'Dual food-grade silicone seals with twist-lock latch tested to 1.5 bar internal pressure',
+        },
+        {
+          name: 'Ultra-Durable Matte Black Powder Coating',
+          status: 'confirmed',
+          note: 'Cross-hatch adhesion ASTM D3359 Class 5B and 100-cycle dishwasher safe',
+        },
+        {
+          name: 'Electropolished 304/316 Odor-Free Interior',
+          status: 'likely',
+          note: 'Electropolishing eliminates micro-crevices preventing protein shake residue odor buildup',
+        },
+        {
+          name: 'BPA-Free / FDA 21 CFR / LFGB Certification',
+          status: 'needs_confirmation',
+          note: 'Requires third-party SGS/TÜV food-contact migration test certificate',
+        },
       ],
       specifications: [
-        { dimension: 'Water Activity (aw)', value: '< 0.62 at 25°C', importance: 'critical' },
-        { dimension: 'Protein Content per Bar', value: '20g +/- 1g', importance: 'critical' },
-        { dimension: 'Packaging Oxygen Transmission Rate (OTR)', value: '< 1.0 cc/m²/day', importance: 'high' },
-        { dimension: 'Weight Consistency', value: '60g +/- 2%', importance: 'medium' },
+        { dimension: 'Thermal Insulation Retention', value: '< 10°C cold at 24 hours (tested at 22°C ambient)', importance: 'critical' },
+        { dimension: 'Internal Capacity', value: '750 ml (24 oz) +/- 15 ml', importance: 'critical' },
+        { dimension: 'Powder Coat Thickness', value: '65 µm +/- 10 µm (scratch resistance > 3H pencil)', importance: 'high' },
+        { dimension: 'Drop Shock Resistance', value: '1.2m drop test onto concrete without vacuum loss', importance: 'critical' },
       ],
       regulatoryConsiderations: [
-        'FSSAI Schedule IV Sanitary & Hygiene Compliance',
-        'Nutritional Panel & Allergen Declaration (Gluten, Dairy, Soy)',
-        'FSSAI Central License for Proprietary Foods',
-        'Weights & Measures Legal Metrology Act',
+        'FDA 21 CFR 175.300 & LFGB Food Contact Safety',
+        'California Proposition 65 Heavy Metal Compliance (Lead/Cadmium Free)',
+        'ISO 9001:2015 Quality Management System at Production Facility',
+        'BPA/BPS-Free Certification on all Polypropylene & Silicone components',
       ],
       clarifyingQuestions: [
-        'Do you require temperature-controlled cold chain logistics for summer transport?',
-        'Do you supply your own branded packaging film rolls or need turnkey procurement from the co-packer?',
-        'Will your recipe use whey isolate or plant-based proteins (pea/rice)?',
+        'Do you require automated in-line vacuum testing machines (thermal sensor drop check) for 100% of units?',
+        'What is your standard tooling lead time for custom PP lid mold sampling (T1 samples)?',
+        'Can you provide automated rotary laser etching for individual founder logos in-house?',
       ],
     };
   }
@@ -582,6 +759,41 @@ function generateHeuristicInterpretation(prompt: string) {
       targetUnitCostEstimate: '$0.85 - $1.45 / unit',
       targetLeadTime: '5-7 weeks',
       locationPreference: pLower.includes('india') ? 'India (Pune, Ahmedabad, or Chennai industrial corridor)' : 'Global Precision',
+      components: [
+        {
+          name: 'Seamless Monobloc Aluminium Shell',
+          materialGrade: 'Aluminium 1070 Slug (99.7% Purity)',
+          manufacturingProcess: 'Backward Cold Impact Extrusion & Trimming',
+          toolingType: 'Tungsten Carbide Impact Extrusion Die Set',
+          toolingCostEstimate: '$4,200 - $6,000',
+          unitCostContribution: '$0.55 - $0.85',
+          tolerance: '+/- 0.04 mm',
+        },
+        {
+          name: 'Internal Protective Barrier Lining',
+          materialGrade: 'Food-Grade BPA-NI Modified Epoxy/Polyamide Lacquer',
+          manufacturingProcess: 'Rotary Electrostatic Spray & Induction Bake',
+          toolingType: 'Standard Spray Nozzle Fixture',
+          toolingCostEstimate: '$0 (Stock Tooling)',
+          unitCostContribution: '$0.12 - $0.20',
+          tolerance: 'Coating weight 5.5 - 7.0 mg/cm²',
+        },
+        {
+          name: 'Threaded Neck Closure (28/410)',
+          materialGrade: 'Food-grade Polypropylene (PP) with Silicone Liner',
+          manufacturingProcess: 'Rotary Necking & Multi-Cavity Injection Molding',
+          toolingType: 'Threaded Neck Die & Cap Mold',
+          toolingCostEstimate: '$3,200 - $4,800',
+          unitCostContribution: '$0.18 - $0.30',
+          tolerance: '+/- 0.03 mm',
+        },
+      ],
+      toolingSummary: {
+        totalToolingNre: '$7,400 - $10,800',
+        toolingLeadTimeWeeks: 4,
+        goldenSampleLeadTimeWeeks: 2,
+        massProductionWeeks: 5,
+      },
       requirements: [
         { name: 'Impact Extrusion of 1070 Slugs', status: 'confirmed', note: 'Monobloc seamless body construction' },
         { name: 'Internal Protective Lacquer (BPA-NI)', status: 'confirmed', note: 'Required for beverage or cosmetic chemical resistance' },
@@ -602,8 +814,81 @@ function generateHeuristicInterpretation(prompt: string) {
     };
   }
 
+  if (isFood) {
+    return {
+      projectName: 'Nutritional Food Bar Line',
+      summary: 'Nutritional food extrusion line with multi-layer nitrogen barrier wrapping and secondary retail display carton packaging.',
+      industry: 'Food & Nutrition',
+      productCategory: 'Functional Nutrition Bars',
+      materials: ['Plant & Dairy Protein Blend', 'Prebiotic Fiber Syrups', 'BOPP Metallized Barrier Film', 'FSC Recycled Paperboard'],
+      processes: ['Cold Extrusion', 'Chocolate Enrobing / Drizzle', 'Flow Wrapping', 'Modified Atmosphere Packaging (MAP)'],
+      machineryNeeded: ['Continuous Extruder with Guillotine Cutter', 'Multi-zone Cooling Tunnel', 'High-Speed Flow Wrapper', 'Metal Detector & Checkweigher'],
+      targetMOQ: 50000,
+      moqUnit: 'units',
+      targetUnitCostEstimate: '$0.42 - $0.68 / unit',
+      targetLeadTime: '6-8 weeks',
+      locationPreference: pLower.includes('india') ? 'India (Maharashtra / Gujarat / Bangalore clusters)' : 'Preferred Regional Hub',
+      components: [
+        {
+          name: 'Extruded Core Dough Core',
+          materialGrade: 'Food-Grade Protein Isolate & Prebiotic Fiber Base',
+          manufacturingProcess: 'Sigma Blade Blending & Cold Extrusion',
+          toolingType: 'Custom Extrusion Die Nozzle',
+          toolingCostEstimate: '$1,200 - $1,800',
+          unitCostContribution: '$0.28 - $0.42',
+          tolerance: '+/- 1.2g weight tolerance',
+        },
+        {
+          name: 'Primary Flow-Wrap Pouch',
+          materialGrade: 'Metallized BOPP / EVOH High Barrier Film',
+          manufacturingProcess: 'Form-Fill-Seal with Nitrogen Flush (residual O2 < 1%)',
+          toolingType: 'Rotary Sealing Jaws & Print Rollers',
+          toolingCostEstimate: '$800 - $1,200',
+          unitCostContribution: '$0.08 - $0.14',
+          tolerance: 'Seal integrity 100% leak-tested',
+        },
+        {
+          name: 'Retail Counter Caddy',
+          materialGrade: '350 GSM FSC Certified SBS Paperboard',
+          manufacturingProcess: 'Offset 5-Color Printing, Die-Cutting & Gluer',
+          toolingType: 'Die-cutting Steel Rule & Embossing Plates',
+          toolingCostEstimate: '$650 - $950',
+          unitCostContribution: '$0.06 - $0.12',
+          tolerance: '+/- 0.5 mm',
+        },
+      ],
+      toolingSummary: {
+        totalToolingNre: '$2,650 - $3,950',
+        toolingLeadTimeWeeks: 3,
+        goldenSampleLeadTimeWeeks: 2,
+        massProductionWeeks: 4,
+      },
+      requirements: [
+        { name: 'Product Formulation & Lab Tasting', status: 'confirmed', note: 'Recipe optimization for 12-month shelf life without hardening' },
+        { name: 'Cold Extrusion & Portioning', status: 'confirmed', note: 'Tolerance +/- 1.5g per unit' },
+        { name: 'Individual Barrier Flow-Wrap', status: 'confirmed', note: 'BOPP / EVOH moisture barrier with nitrogen flush' },
+        { name: 'Shelf-Life & Water Activity (aw < 0.65)', status: 'likely', note: 'Critical to prevent microbial spoilage without synthetic preservatives' },
+        { name: 'FSSAI / FDA Cleanroom Certification', status: 'needs_confirmation', note: 'Requires ISO 22000 / HACCP certified facility' },
+      ],
+      specifications: [
+        { dimension: 'Water Activity (aw)', value: '< 0.62 at 25°C', importance: 'critical' },
+        { dimension: 'Protein Content per Unit', value: '20g +/- 1g', importance: 'critical' },
+        { dimension: 'Packaging Oxygen Transmission Rate (OTR)', value: '< 1.0 cc/m²/day', importance: 'high' },
+      ],
+      regulatoryConsiderations: [
+        'FSSAI Schedule IV Sanitary & Hygiene Compliance',
+        'Nutritional Panel & Allergen Declaration (Gluten, Dairy, Soy)',
+        'Weights & Measures Legal Metrology Act',
+      ],
+      clarifyingQuestions: [
+        'Do you require temperature-controlled cold chain logistics for summer transport?',
+        'Do you supply your own branded packaging film rolls or need turnkey procurement from the co-packer?',
+      ],
+    };
+  }
+
   return {
-    projectName: 'Engineered Hardware Product',
+    projectName: 'Engineered Precision Hardware Product',
     summary: 'Turnkey manufacturing with precision tooling, automated assembly, and strict multi-point QA tolerances.',
     industry: isElectronics ? 'Electronics & Mechatronics' : 'Precision Industrial Hardware',
     productCategory: 'Engineered Components & Assembly',
@@ -614,16 +899,51 @@ function generateHeuristicInterpretation(prompt: string) {
     moqUnit: 'units',
     targetUnitCostEstimate: '$2.10 - $4.80 / unit',
     targetLeadTime: '6-10 weeks',
-    locationPreference: 'Industrial Hubs',
+    locationPreference: 'Industrial Precision Hubs',
+    components: [
+      {
+        name: 'Precision CNC Machined Enclosure',
+        materialGrade: 'Aircraft-Grade 6061-T6 Aluminum',
+        manufacturingProcess: '5-Axis High-Speed CNC Milling & Chamfering',
+        toolingType: 'Custom Soft Jaws & Vacuum Fixturing',
+        toolingCostEstimate: '$1,500 - $2,500',
+        unitCostContribution: '$1.40 - $2.20',
+        tolerance: '+/- 0.015 mm',
+      },
+      {
+        name: 'Type III Hard Anodized Finish',
+        materialGrade: 'Mil-A-8625 Type III Class 2 Hardcoat',
+        manufacturingProcess: 'Electrolytic Acid Bath Anodizing & Bead Blast',
+        toolingType: 'Standard Anodizing Racks',
+        toolingCostEstimate: '$0 (Stock Tooling)',
+        unitCostContribution: '$0.35 - $0.60',
+        tolerance: 'Coating thickness 45-55 µm',
+      },
+      {
+        name: 'Precision Fasteners & Gaskets',
+        materialGrade: '316 Stainless Steel Torx Screws & EPDM Seal',
+        manufacturingProcess: 'Cold Heading & Die-Cut Gasketing',
+        toolingType: 'Standard Tooling',
+        toolingCostEstimate: '$400 - $700',
+        unitCostContribution: '$0.25 - $0.45',
+        tolerance: '+/- 0.02 mm',
+      },
+    ],
+    toolingSummary: {
+      totalToolingNre: '$1,900 - $3,200',
+      toolingLeadTimeWeeks: 3,
+      goldenSampleLeadTimeWeeks: 2,
+      massProductionWeeks: 5,
+    },
     requirements: [
       { name: 'BOM Component Sourcing', status: 'confirmed', note: 'Traceable vendor certifications' },
-      { name: 'Tooling & Mold Development', status: 'confirmed', note: 'Hardened steel tool steel for 500k+ cycles' },
-      { name: 'Dimensional Tolerances (+/- 0.05mm)', status: 'likely', note: 'Precision fit requirement' },
-      { name: 'End-of-Line Functional Testing', status: 'needs_confirmation', note: '100% automated electrical or mechanical test fixture' },
+      { name: 'Tooling & Fixture Development', status: 'confirmed', note: 'Precision CNC fixturing for batch run consistency' },
+      { name: 'Dimensional Tolerances (+/- 0.015mm)', status: 'likely', note: 'Precision mating fit requirement' },
+      { name: 'End-of-Line Functional Testing', status: 'needs_confirmation', note: '100% automated optical or CMM dimensional verification' },
     ],
     specifications: [
-      { dimension: 'Mechanical Tolerance', value: '+/- 0.025 mm', importance: 'critical' },
-      { dimension: 'Cosmetic Grade', value: 'SPI A-2 / Class A Finish', importance: 'high' },
+      { dimension: 'Mechanical Tolerance', value: '+/- 0.015 mm', importance: 'critical' },
+      { dimension: 'Cosmetic Grade', value: 'SPI A-2 / Class A Bead Blast Finish', importance: 'high' },
     ],
     regulatoryConsiderations: ['RoHS / REACH compliance', 'ISO 9001:2015 quality management'],
     clarifyingQuestions: [

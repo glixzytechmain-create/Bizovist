@@ -42,6 +42,24 @@ export const aiService = {
     return await res.json();
   },
 
+  async refineBom(
+    currentAnalysis: any,
+    userInstruction: string
+  ): Promise<{ success: boolean; data: AIAnalysisResult; engine: string }> {
+    const res = await fetch('/api/ai/refine-bom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentAnalysis, userInstruction }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to refine BOM');
+    }
+
+    return await res.json();
+  },
+
   async evaluateMatch(project: any, manufacturer: any): Promise<{
     matchScore: number;
     confidenceScore: number;

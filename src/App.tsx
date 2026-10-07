@@ -6,7 +6,7 @@ import { MobileNav } from './components/layout/MobileNav';
 import { LandingPage } from './components/landing/LandingPage';
 import { RoleSelectionModal } from './components/onboarding/RoleSelectionModal';
 import { FounderHome } from './components/founder/FounderHome';
-import { AiProductUnderstanding } from './components/founder/AiProductUnderstanding';
+import { AiBomStudio } from './components/founder/AiBomStudio';
 import { ProjectView } from './components/projects/ProjectView';
 import { ManufacturerDiscovery } from './components/discovery/ManufacturerDiscovery';
 import { ManufacturerComparison } from './components/comparison/ManufacturerComparison';
@@ -37,7 +37,7 @@ function AppContent() {
           {activeView === 'landing' && <LandingPage />}
           {activeView === 'role-selection' && <RoleSelectionModal />}
           {activeView === 'home' && <FounderHome />}
-          {activeView === 'ai-understand' && <AiProductUnderstanding />}
+          {activeView === 'ai-understand' && <AiBomStudio />}
           {activeView === 'projects' && <ProjectView />}
           {activeView === 'discover' && <ManufacturerDiscovery />}
           {activeView === 'comparison' && <ManufacturerComparison />}

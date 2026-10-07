@@ -89,6 +89,8 @@ export interface Project {
   locationPreference?: string;
   requirements: Requirement[];
   specifications: SpecificationItem[];
+  components?: BomComponent[];
+  toolingSummary?: ToolingSummary;
   regulatoryConsiderations: string[];
   keyQuestionsForManufacturers: string[];
   shortlistedManufacturerIds: string[];
@@ -133,6 +135,23 @@ export interface MessageThread {
   }[];
 }
 
+export interface BomComponent {
+  name: string;
+  materialGrade: string;
+  manufacturingProcess: string;
+  toolingType: string;
+  toolingCostEstimate: string;
+  unitCostContribution?: string;
+  tolerance: string;
+}
+
+export interface ToolingSummary {
+  totalToolingNre: string;
+  toolingLeadTimeWeeks: number;
+  goldenSampleLeadTimeWeeks: number;
+  massProductionWeeks: number;
+}
+
 export interface AIAnalysisResult {
   projectName: string;
   summary: string;
@@ -146,6 +165,8 @@ export interface AIAnalysisResult {
   targetUnitCostEstimate: string;
   targetLeadTime: string;
   locationPreference: string;
+  components?: BomComponent[];
+  toolingSummary?: ToolingSummary;
   requirements: {
     name: string;
     status: RequirementStatus;

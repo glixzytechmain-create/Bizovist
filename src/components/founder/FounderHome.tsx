@@ -83,31 +83,43 @@ export const FounderHome: React.FC = () => {
             <textarea
               value={promptInput}
               onChange={(e) => setPromptInput(e.target.value)}
-              placeholder="Describe your manufacturing idea, materials, volume target, or geometry... (e.g., 'I want to manufacture 50,000 cold-extruded protein bars in India with individual nitrogen flow-wrapping and private label packaging')"
+              placeholder="Describe your manufacturing idea, materials, volume target, or geometry... (e.g., 'I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units')"
               rows={3}
               className="w-full bg-transparent border-0 text-white placeholder-white/30 text-sm sm:text-base focus:ring-0 focus:outline-none resize-none leading-relaxed"
             />
 
             <div className="mt-4 pt-3 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-white/40">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-white/40">
                 <span>Quick prompts:</span>
                 <button
                   type="button"
                   onClick={() =>
                     setPromptInput(
-                      'I want to manufacture a premium protein bar in India. Initial quantity around 50,000 units. I want individual wrapping and premium packaging.'
+                      'I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units.'
                     )
                   }
                   className="text-xs text-white/70 hover:text-white underline decoration-white/20"
                 >
-                  Protein Bar Line
+                  Insulated Shaker Bottle
                 </button>
                 <span>•</span>
                 <button
                   type="button"
                   onClick={() =>
                     setPromptInput(
-                      'Find manufacturers in India who can make custom aluminium bottles with printing and an MOQ around 20,000.'
+                      'Custom 5-axis CNC machined 6061 aluminium drone gimbal housing with Type III hard anodizing, MOQ 1,500 units.'
+                    )
+                  }
+                  className="text-xs text-white/70 hover:text-white underline decoration-white/20"
+                >
+                  Drone Gimbal
+                </button>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPromptInput(
+                      'Find manufacturers in India who can make custom monobloc aluminium bottles with 360 printing and an MOQ around 20,000.'
                     )
                   }
                   className="text-xs text-white/70 hover:text-white underline decoration-white/20"

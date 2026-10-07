@@ -65,6 +65,7 @@ interface AppContextType {
   setLatestAnalysis: (analysis: AIAnalysisResult | null) => void;
   systemStatus: SystemStatus | null;
   analyzeIdea: (prompt: string) => Promise<AIAnalysisResult>;
+  refineBomWithAi: (instruction: string) => Promise<AIAnalysisResult>;
   createProjectFromAnalysis: (analysis: AIAnalysisResult) => Project;
   toggleShortlist: (mfgId: string) => void;
   toggleComparison: (mfgId: string) => void;
@@ -89,15 +90,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [projects, setProjects] = useState<Project[]>([INITIAL_PROJECT]);
   const [activeProject, setActiveProject] = useState<Project | null>(INITIAL_PROJECT);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>(INITIAL_MANUFACTURERS);
-  const [shortlistedManufacturerIds, setShortlistedManufacturerIds] = useState<string[]>(['mfg-apex-nutrition']);
-  const [comparisonManufacturerIds, setComparisonManufacturerIds] = useState<string[]>(['mfg-hind-metals', 'mfg-apex-nutrition']);
+  const [shortlistedManufacturerIds, setShortlistedManufacturerIds] = useState<string[]>(['mfg-hind-metals']);
+  const [comparisonManufacturerIds, setComparisonManufacturerIds] = useState<string[]>(['mfg-hind-metals', 'mfg-titan-precision']);
   const [activeManufacturerDetail, setActiveManufacturerDetail] = useState<Manufacturer | null>(null);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const [aiDrawerContext, setAiDrawerContext] = useState<{ type: 'global' | 'project' | 'manufacturer' | 'comparison'; data?: any }>({
     type: 'global',
   });
   const [messages, setMessages] = useState<MessageThread[]>(INITIAL_MESSAGES);
-  const [activeThreadId, setActiveThreadId] = useState<string | null>('thread-apex-01');
+  const [activeThreadId, setActiveThreadId] = useState<string | null>('thread-hind-01');
   const [isInterpreting, setIsInterpreting] = useState(false);
   const [latestAnalysis, setLatestAnalysis] = useState<AIAnalysisResult | null>(null);
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
@@ -153,6 +154,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refineBomWithAi = async (instruction: string): Promise<AIAnalysisResult> => {
+    const baseAnalysis: AIAnalysisResult = latestAnalysis || {
+      projectName: activeProject?.title || 'Insulated Matte-Black Stainless Steel Shaker Bottle',
+      summary: activeProject?.summary || '',
+      industry: activeProject?.industry || 'Consumer Goods & Fitness Hardware',
+      productCategory: activeProject?.productCategory || 'Drinkware & Insulated Containers',
+      materials: activeProject?.materials || ['304 Stainless Steel', 'Polypropylene', 'Silicone'],
+      processes: activeProject?.processes || ['Deep Drawing', 'Vacuum Sealing', 'Powder Coating'],
+      machineryNeeded: activeProject?.machineryNeeded || ['Hydraulic Press', 'Laser Welder'],
+      targetMOQ: activeProject?.targetMOQ || 10000,
+      moqUnit: activeProject?.moqUnit || 'units',
+      targetUnitCostEstimate: activeProject?.targetUnitCost || '$3.40 - $4.85 / unit',
+      targetLeadTime: activeProject?.targetLeadTime || '6-8 weeks',
+      locationPreference: activeProject?.locationPreference || 'India',
+      components: activeProject?.components || [],
+      toolingSummary: activeProject?.toolingSummary,
+      requirements: (activeProject?.requirements || []).map((r) => ({
+        name: r.name,
+        status: r.status,
+        note: r.note,
+      })),
+      specifications: (activeProject?.specifications || []).map((s) => ({
+        dimension: s.dimension,
+        value: s.value,
+        importance: s.importance,
+      })),
+      regulatoryConsiderations: activeProject?.regulatoryConsiderations || [],
+      clarifyingQuestions: activeProject?.keyQuestionsForManufacturers || [],
+    };
+
+    setIsInterpreting(true);
+    try {
+      const response = await aiService.refineBom(baseAnalysis, instruction);
+      setLatestAnalysis(response.data);
+      if (activeProject) {
+        setActiveProject({
+          ...activeProject,
+          title: response.data.projectName,
+          summary: response.data.summary,
+          industry: response.data.industry,
+          productCategory: response.data.productCategory,
+          components: response.data.components,
+          toolingSummary: response.data.toolingSummary,
+          materials: response.data.materials,
+          processes: response.data.processes,
+          machineryNeeded: response.data.machineryNeeded,
+          targetMOQ: response.data.targetMOQ,
+          targetUnitCost: response.data.targetUnitCostEstimate,
+          targetLeadTime: response.data.targetLeadTime,
+          specifications: response.data.specifications.map((s, idx) => ({
+            id: `spec-${Date.now()}-${idx}`,
+            dimension: s.dimension,
+            value: s.value,
+            importance: s.importance,
+          })),
+        });
+      }
+      return response.data;
+    } catch (err) {
+      console.error('Failed to refine BOM:', err);
+      throw err;
+    } finally {
+      setIsInterpreting(false);
+    }
+  };
+
   const createProjectFromAnalysis = (analysis: AIAnalysisResult): Project => {
     const newProj: Project = {
       id: `proj-${Date.now()}`,
@@ -171,6 +238,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       targetUnitCost: analysis.targetUnitCostEstimate,
       targetLeadTime: analysis.targetLeadTime,
       locationPreference: analysis.locationPreference,
+      components: analysis.components,
+      toolingSummary: analysis.toolingSummary,
       requirements: analysis.requirements.map((r, idx) => ({
         id: `req-${Date.now()}-${idx}`,
         name: r.name,
@@ -369,6 +438,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLatestAnalysis,
         systemStatus,
         analyzeIdea,
+        refineBomWithAi,
         createProjectFromAnalysis,
         toggleShortlist,
         toggleComparison,

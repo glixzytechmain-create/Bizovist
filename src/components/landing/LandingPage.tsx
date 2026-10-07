@@ -16,24 +16,24 @@ import {
 export const LandingPage: React.FC = () => {
   const { setActiveView, setUserRole, analyzeIdea, isInterpreting } = useApp();
   const [ideaPrompt, setIdeaPrompt] = useState(
-    'I want to manufacture a premium protein bar in India. Initial quantity around 50,000 units. I want individual wrapping and premium packaging.'
+    'I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units.'
   );
 
   const samplePrompts = [
     {
-      label: 'Protein Bar Line',
+      label: 'Insulated Shaker Bottle',
       prompt:
-        'I want to manufacture a premium protein bar in India. Initial quantity around 50,000 units. I want individual wrapping and premium packaging.',
+        'I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units.',
     },
     {
       label: 'Aluminium Bottles',
       prompt:
-        'Find manufacturers in India who can make custom aluminium bottles with printing and an MOQ around 20,000.',
+        'Find manufacturers in India who can make custom monobloc aluminium bottles with printing and an MOQ around 20,000.',
     },
     {
-      label: 'Precision CNC Enclosures',
+      label: 'Drone Gimbal Hardware',
       prompt:
-        'Custom 5-axis CNC machined 6061 aluminium actuator enclosures with Type III hard anodizing, MOQ 1,000 units.',
+        'Custom 5-axis CNC machined 6061 aluminium actuator enclosures with Type III hard anodizing, MOQ 1,500 units.',
     },
     {
       label: 'Class 7 Medical Molding',
@@ -126,7 +126,7 @@ export const LandingPage: React.FC = () => {
             <textarea
               value={ideaPrompt}
               onChange={(e) => setIdeaPrompt(e.target.value)}
-              placeholder="e.g. I want to manufacture a premium protein bar in India. Initial quantity around 50,000 units. I want individual wrapping and premium packaging..."
+              placeholder="e.g. I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units..."
               rows={3}
               className="w-full bg-transparent border-0 text-white placeholder-white/30 text-sm sm:text-base focus:ring-0 focus:outline-none resize-none leading-relaxed"
             />
