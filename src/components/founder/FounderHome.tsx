@@ -13,9 +13,13 @@ import {
   TrendingUp,
   Cpu,
   Layers,
+  Kanban,
+  FileCheck2,
+  Wrench,
 } from 'lucide-react';
 import { MatchScoreBadge } from '../ui/MatchScoreBadge';
 import { EvidenceBadge } from '../ui/EvidenceBadge';
+import { LegalRfqModal } from '../rfq/LegalRfqModal';
 
 export const FounderHome: React.FC = () => {
   const {
@@ -31,6 +35,7 @@ export const FounderHome: React.FC = () => {
   } = useApp();
 
   const [promptInput, setPromptInput] = useState('');
+  const [isRfqModalOpen, setIsRfqModalOpen] = useState(false);
 
   const handleStartAnalysis = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,6 +183,108 @@ export const FounderHome: React.FC = () => {
         </button>
       </section>
 
+      {/* Precision Core Operations Quick-Launch Trays */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-mono uppercase tracking-wider text-white/40 font-semibold flex items-center gap-2">
+            <Cpu className="w-3.5 h-3.5 text-[#FF5533]" />
+            <span>Core Hardware Operations & Workflows</span>
+          </span>
+          <span className="text-[11px] font-mono text-white/40">
+            Dedicated Engineering Tooling
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Production Pipeline */}
+          <div
+            onClick={() => setActiveView('pipeline')}
+            className="panel-card-hover p-4 sm:p-5 rounded-2xl bg-[#0F121C] border border-white/[0.08] hover:border-amber-400/50 cursor-pointer space-y-3 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400">
+                <Kanban className="w-4 h-4" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                T1/T2 KANBAN
+              </span>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-bold text-white group-hover:text-amber-300 transition tracking-tight">
+                Golden Sample Pipeline
+              </h4>
+              <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                Track physical progress from CAD Freeze to T1 tooling trial, CMM metrology, and SOP.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono text-white/40">
+              <span>Phase: T1 Trial First Shot</span>
+              <span className="text-amber-400 group-hover:underline">Open Pipeline →</span>
+            </div>
+          </div>
+
+          {/* Card 2: Legal RFQ Packet */}
+          <div
+            onClick={() => setIsRfqModalOpen(true)}
+            className="panel-card-hover p-4 sm:p-5 rounded-2xl bg-[#0F121C] border border-white/[0.08] hover:border-emerald-500/50 cursor-pointer space-y-3 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+                <FileCheck2 className="w-4 h-4" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                MSA CONTRACT
+              </span>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-bold text-white group-hover:text-emerald-400 transition tracking-tight">
+                Official Legal RFQ Spec
+              </h4>
+              <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                Printable procurement packet with Tooling Ownership retention and &lt;1.8% defect caps.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono text-white/40">
+              <span>Rev 1.0 Ready to Execute</span>
+              <span className="text-emerald-400 group-hover:underline">Generate Packet →</span>
+            </div>
+          </div>
+
+          {/* Card 3: AI Co-Founder BOM Studio */}
+          <div
+            onClick={() => setActiveView('ai-understand')}
+            className="panel-card-hover p-4 sm:p-5 rounded-2xl bg-[#0F121C] border border-white/[0.08] hover:border-[#FF5533]/50 cursor-pointer space-y-3 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 rounded-xl bg-[#FF5533]/15 border border-[#FF5533]/25 flex items-center justify-center text-[#FF5533]">
+                <Wrench className="w-4 h-4" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#FF5533]/10 text-[#FF5533] border border-[#FF5533]/20">
+                GEMINI 2.5 FLASH
+              </span>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-bold text-white group-hover:text-[#FF5533] transition tracking-tight">
+                AI Co-Founder BOM Studio
+              </h4>
+              <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                Deconstruct products into full bills of materials, tooling NRE, and tolerance requirements.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] font-mono text-white/40">
+              <span>Audio Briefing & Sheets</span>
+              <span className="text-[#FF5533] group-hover:underline">Launch Studio →</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Grid: Recent Projects & Recommended Facilities */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Recent Projects */}
@@ -304,6 +411,13 @@ export const FounderHome: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Legal RFQ Spec Document Modal */}
+      <LegalRfqModal
+        isOpen={isRfqModalOpen}
+        onClose={() => setIsRfqModalOpen(false)}
+        project={activeProject}
+      />
     </div>
   );
 };

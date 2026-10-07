@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   BookmarkCheck,
   TrendingUp,
+  Kanban,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -30,6 +31,12 @@ export const Sidebar: React.FC = () => {
   const founderNavItems: { id: AppView; label: string; icon: React.ReactNode; badge?: string | number }[] = [
     { id: 'home', label: 'Workspace', icon: <Home className="w-4 h-4" /> },
     { id: 'projects', label: 'Projects', icon: <FolderKanban className="w-4 h-4" /> },
+    {
+      id: 'pipeline',
+      label: 'Production Pipeline',
+      icon: <Kanban className="w-4 h-4 text-amber-400" />,
+      badge: 'T1/T2',
+    },
     { id: 'discover', label: 'Discover Facilities', icon: <Search className="w-4 h-4" /> },
     {
       id: 'comparison',

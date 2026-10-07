@@ -21,8 +21,12 @@ import {
   ExternalLink,
   ChevronRight,
   Check,
+  Kanban,
+  FileCheck2,
 } from 'lucide-react';
 import { EvidenceBadge } from '../ui/EvidenceBadge';
+import { AudioBriefingPlayer } from '../ai/AudioBriefingPlayer';
+import { LegalRfqModal } from '../rfq/LegalRfqModal';
 
 interface ChatMessage {
   id: string;
@@ -41,6 +45,8 @@ export const AiBomStudio: React.FC = () => {
     setActiveView,
     isInterpreting,
   } = useApp();
+
+  const [isRfqModalOpen, setIsRfqModalOpen] = useState(false);
 
   // Active BOM state fallback to shaker bottle if not set
   const currentBOM: AIAnalysisResult = latestAnalysis || {
@@ -323,12 +329,30 @@ export const AiBomStudio: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {/* Official Legal RFQ Spec Button */}
+            <button
+              onClick={() => setIsRfqModalOpen(true)}
+              className="btn-tactile inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-white border border-white/[0.1] shadow-lg transition active:scale-95"
+            >
+              <FileCheck2 className="w-4 h-4 text-emerald-400" />
+              <span>Legal RFQ Packet</span>
+            </button>
+
+            {/* Production Pipeline Tracker */}
+            <button
+              onClick={() => setActiveView('pipeline')}
+              className="btn-tactile inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-amber-300 border border-amber-500/30 shadow-lg transition active:scale-95"
+            >
+              <Kanban className="w-4 h-4 text-amber-400" />
+              <span>T1/T2 Pipeline</span>
+            </button>
+
             {/* 1-Click Google Sheets Export */}
             <button
               onClick={handleExportSheets}
               disabled={exporting}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-emerald-400 border border-emerald-500/30 shadow-lg hover:border-emerald-500/50 transition active:scale-95 disabled:opacity-50"
+              className="btn-tactile inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-emerald-400 border border-emerald-500/30 shadow-lg hover:border-emerald-500/50 transition active:scale-95 disabled:opacity-50"
             >
               {exporting ? (
                 <>
@@ -338,7 +362,7 @@ export const AiBomStudio: React.FC = () => {
               ) : (
                 <>
                   <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                  <span>1-Click Sheets Export</span>
+                  <span>Sheets Export</span>
                 </>
               )}
             </button>
@@ -346,9 +370,9 @@ export const AiBomStudio: React.FC = () => {
             {/* Match Verified Facilities (Swipe Deck) */}
             <button
               onClick={handleProceedToDiscovery}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white shadow-xl shadow-[#FF5533]/25 hover:brightness-110 active:scale-95 transition"
+              className="btn-tactile inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white shadow-xl shadow-[#FF5533]/25 hover:brightness-110 active:scale-95 transition"
             >
-              <span>Match Verified Factories</span>
+              <span>Match Factories</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -362,6 +386,12 @@ export const AiBomStudio: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Executive Audio Briefing Player */}
+      <AudioBriefingPlayer
+        projectName={currentBOM.projectName}
+        summaryText={`${currentBOM.summary} Key manufacturing processes include ${currentBOM.processes.join(', ')}. Target volume is ${currentBOM.targetMOQ.toLocaleString()} ${currentBOM.moqUnit} at target cost ${currentBOM.targetUnitCostEstimate}. Estimated tooling NRE is ${currentBOM.toolingSummary?.totalToolingNre || '$15,000'}.`}
+      />
 
       {/* Dual-Panel Layout: Conversational Studio (Left) + Live Interactive BOM Matrix (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -629,6 +659,13 @@ export const AiBomStudio: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Legal RFQ Spec Document Modal */}
+      <LegalRfqModal
+        isOpen={isRfqModalOpen}
+        onClose={() => setIsRfqModalOpen(false)}
+        project={activeProject}
+      />
     </div>
   );
 };

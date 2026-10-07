@@ -32,6 +32,7 @@ export type AppView =
   | 'home'
   | 'ai-understand'
   | 'projects'
+  | 'pipeline'
   | 'discover'
   | 'comparison'
   | 'messages'

@@ -225,3 +225,31 @@ export interface ManufacturerComparisonResult {
   engine?: string;
 }
 
+export type MilestoneStatus = 'not_started' | 'in_progress' | 'review_required' | 'passed_locked';
+
+export interface InspectionMetric {
+  id: string;
+  label: string;
+  target: string;
+  measured: string;
+  unit: string;
+  pass: boolean;
+}
+
+export interface ProductionMilestone {
+  id: string;
+  stepNumber: number;
+  code: string;
+  title: string;
+  stage: string;
+  description: string;
+  status: MilestoneStatus;
+  targetWeeks: number;
+  completedDate?: string;
+  inspectorName?: string;
+  metrics: InspectionMetric[];
+  deliverables: string[];
+  notes?: string;
+}
+
+

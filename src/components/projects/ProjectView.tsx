@@ -19,10 +19,12 @@ import {
   Eye,
   Trash2,
   ExternalLink,
+  Kanban,
 } from 'lucide-react';
 import { EvidenceBadge } from '../ui/EvidenceBadge';
 import { MatchScoreBadge } from '../ui/MatchScoreBadge';
 import { GoogleSheetsExportModal } from './GoogleSheetsExportModal';
+import { LegalRfqModal } from '../rfq/LegalRfqModal';
 
 export const ProjectView: React.FC = () => {
   const {
@@ -34,7 +36,10 @@ export const ProjectView: React.FC = () => {
     startNewRfq,
     openAiDrawer,
     updateProjectRequirements,
+    setActiveView,
   } = useApp();
+
+  const [showRfqModal, setShowRfqModal] = useState(false);
 
   const [activeTab, setActiveTab] = useState<
     | 'overview'
@@ -112,13 +117,33 @@ Identified Bottleneck: You have confirmed 5 specifications, but packaging barrie
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* T1/T2 Production Pipeline */}
+            <button
+              onClick={() => setActiveView('pipeline')}
+              className="btn-tactile px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white/[0.05] hover:bg-white/[0.1] text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5"
+              title="Track T1/T2 Golden Sample Hardware Milestones"
+            >
+              <Kanban className="w-3.5 h-3.5 text-amber-400" />
+              <span>T1/T2 Pipeline</span>
+            </button>
+
+            {/* Official Legal RFQ Spec Document */}
+            <button
+              onClick={() => setShowRfqModal(true)}
+              className="btn-tactile px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white/[0.05] hover:bg-white/[0.1] text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1.5"
+              title="Generate printable Legal RFQ contract packet"
+            >
+              <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Legal RFQ Spec</span>
+            </button>
+
             <button
               onClick={() => setShowSheetsModal(true)}
-              className="px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1.5"
+              className="btn-tactile px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white/[0.05] hover:bg-white/[0.1] text-white/80 border border-white/[0.1] transition flex items-center gap-1.5"
               title="Export BOM & technical specifications to Google Sheets"
             >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Export to Google Sheets</span>
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Sheets</span>
             </button>
             <button
               onClick={() =>
@@ -127,10 +152,10 @@ Identified Bottleneck: You have confirmed 5 specifications, but packaging barrie
                   data: proj,
                 })
               }
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white shadow-lg shadow-[#FF5533]/25 hover:brightness-110 active:scale-95 transition flex items-center gap-1.5"
+              className="btn-tactile px-4 py-2.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#FF5533] to-[#E04626] text-white shadow-lg shadow-[#FF5533]/25 hover:brightness-110 active:scale-95 transition flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Consult Project Co-Founder</span>
+              <span>AI Co-Founder</span>
             </button>
           </div>
         </div>
@@ -459,12 +484,29 @@ Identified Bottleneck: You have confirmed 5 specifications, but packaging barrie
       )}
 
       {activeTab === 'samples' && (
-        <div className="p-6 text-center rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
-          <Package className="w-6 h-6 text-[#FF5533] mx-auto" />
-          <h4 className="text-xs font-bold text-white">Golden Samples Tracking</h4>
-          <p className="text-xs text-white/50">
-            Awaiting RFQ signoff to commission first pilot run sample trial batch.
-          </p>
+        <div className="p-6 rounded-xl bg-white/[0.02] border border-white/[0.08] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400">
+                <Kanban className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white tracking-tight">
+                  Golden Sample (T1/T2) Hardware Milestone Tracker
+                </h4>
+                <p className="text-xs text-white/50">
+                  Track CAD freeze, mold trials, drop testing, and physical sample sign-offs.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveView('pipeline')}
+              className="btn-tactile px-4 py-2 rounded-xl text-xs font-semibold bg-[#FF5533] hover:bg-[#E04626] text-white shadow-md shadow-[#FF5533]/20 shrink-0"
+            >
+              Open Full Milestone Pipeline →
+            </button>
+          </div>
         </div>
       )}
 
@@ -476,6 +518,13 @@ Identified Bottleneck: You have confirmed 5 specifications, but packaging barrie
           onClose={() => setShowSheetsModal(false)}
         />
       )}
+
+      {/* Legal RFQ Spec Document Modal */}
+      <LegalRfqModal
+        isOpen={showRfqModal}
+        onClose={() => setShowRfqModal(false)}
+        project={proj}
+      />
     </div>
   );
 };

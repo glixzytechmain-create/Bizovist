@@ -8,6 +8,7 @@ import { RoleSelectionModal } from './components/onboarding/RoleSelectionModal';
 import { FounderHome } from './components/founder/FounderHome';
 import { AiBomStudio } from './components/founder/AiBomStudio';
 import { ProjectView } from './components/projects/ProjectView';
+import { ProductionPipelineView } from './components/pipeline/ProductionPipelineView';
 import { ManufacturerDiscovery } from './components/discovery/ManufacturerDiscovery';
 import { ManufacturerComparison } from './components/comparison/ManufacturerComparison';
 import { MessagesView } from './components/messages/MessagesView';
@@ -39,6 +40,7 @@ function AppContent() {
           {activeView === 'home' && <FounderHome />}
           {activeView === 'ai-understand' && <AiBomStudio />}
           {activeView === 'projects' && <ProjectView />}
+          {activeView === 'pipeline' && <ProductionPipelineView />}
           {activeView === 'discover' && <ManufacturerDiscovery />}
           {activeView === 'comparison' && <ManufacturerComparison />}
           {activeView === 'messages' && <MessagesView />}

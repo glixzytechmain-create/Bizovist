@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp, AppView } from '../../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import {
   Home,
   FolderKanban,
@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Sparkles,
   TrendingUp,
+  Kanban,
 } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
@@ -30,6 +31,18 @@ export const MobileNav: React.FC = () => {
         {userRole === 'manufacturer' ? <TrendingUp className="w-4 h-4" /> : <Home className="w-4 h-4" />}
         <span>{userRole === 'manufacturer' ? 'Demand' : 'Home'}</span>
       </button>
+
+      {userRole === 'founder' && (
+        <button
+          onClick={() => setActiveView('pipeline')}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded text-[10px] font-medium transition ${
+            activeView === 'pipeline' ? 'text-amber-400 font-bold' : 'text-white/60 hover:text-white'
+          }`}
+        >
+          <Kanban className="w-4 h-4 text-amber-400" />
+          <span>Pipeline</span>
+        </button>
+      )}
 
       <button
         onClick={() => setActiveView('discover')}

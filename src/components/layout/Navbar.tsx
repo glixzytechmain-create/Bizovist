@@ -10,7 +10,9 @@ import {
   MessageSquare,
   Scale,
   Settings,
+  Kanban,
 } from 'lucide-react';
+import { CommodityMarketTicker } from './CommodityMarketTicker';
 
 interface NavbarProps {
   onOpenSettings: () => void;
@@ -37,7 +39,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
   const unreadCount = messages.filter((m) => m.unread).length;
 
   return (
-    <header className="sticky top-0 z-30 h-14 border-b border-white/[0.08] bg-[#090A0F]/80 backdrop-blur-xl px-4 lg:px-6 flex items-center justify-between">
+    <>
+      <header className="sticky top-0 z-30 h-14 border-b border-white/[0.08] bg-[#090A0F]/90 backdrop-blur-xl px-4 lg:px-6 flex items-center justify-between">
       {/* Brand & Project Switcher */}
       <div className="flex items-center gap-4 lg:gap-6">
         <button
@@ -113,6 +116,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
 
       {/* Right controls: Role switcher, AI Co-Founder CTA, Compare, Messages, Settings */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Production Pipeline Indicator */}
+        {userRole === 'founder' && activeView !== 'landing' && (
+          <button
+            onClick={() => setActiveView('pipeline')}
+            className={`btn-tactile flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition ${
+              activeView === 'pipeline'
+                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/80 border border-white/[0.08]'
+            }`}
+            title="Golden Sample T1/T2 Milestone Pipeline"
+          >
+            <Kanban className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline text-xs font-mono">Pipeline</span>
+          </button>
+        )}
+
         {/* Comparison Indicator */}
         {comparisonManufacturerIds.length > 0 && activeView !== 'landing' && (
           <button
@@ -227,5 +246,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
         </button>
       </div>
     </header>
+    {activeView !== 'landing' && <CommodityMarketTicker />}
+    </>
   );
 };
+
