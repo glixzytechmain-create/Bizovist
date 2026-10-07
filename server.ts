@@ -351,6 +351,96 @@ Return a JSON object:
   }
 });
 
+// Multi-Manufacturer Head-to-Head Comparative Intelligence
+app.post('/api/ai/compare-manufacturers', async (req, res) => {
+  try {
+    const { manufacturers, project } = req.body;
+    if (!Array.isArray(manufacturers) || manufacturers.length === 0) {
+      return res.status(400).json({ error: 'Manufacturers array required for comparison' });
+    }
+
+    if (aiClient) {
+      try {
+        const systemInstruction = `You are BIZOVIST's VP of Global Sourcing and Chief Manufacturing Officer.
+You conduct authoritative head-to-head supplier comparative benchmarks.
+Given a list of 2 to 4 candidate manufacturing facilities and the founder's project BOM/requirements, provide an exhaustive, honest, and decisive trade-off analysis.
+Identify exactly who wins for lowest tooling NRE, who wins for sub-micron/aerospace precision tolerances, and who wins for high-speed mass volume.
+Point out specific logistics tradeoffs regarding port proximity and freight corridors in India and globally.
+Give tactical negotiation leverage points for each factory.
+Return strictly valid JSON adhering to the specified schema.`;
+
+        const prompt = `Project Requirements & BOM:
+${JSON.stringify(project || {})}
+
+Candidate Facilities to Compare:
+${JSON.stringify(manufacturers)}
+
+Return JSON with this exact structure:
+{
+  "executiveRecommendation": "2-3 sentence strategic verdict on which factory to prioritize and why",
+  "winnerForLowNre": {
+    "manufacturerId": "id of the best facility for low upfront tooling",
+    "manufacturerName": "Name of facility",
+    "reason": "Detailed reason why"
+  },
+  "winnerForHighPrecision": {
+    "manufacturerId": "id of the best facility for tightest tolerances",
+    "manufacturerName": "Name of facility",
+    "reason": "Detailed reason why"
+  },
+  "winnerForVolumeAndSpeed": {
+    "manufacturerId": "id of the best facility for volume",
+    "manufacturerName": "Name of facility",
+    "reason": "Detailed reason why"
+  },
+  "logisticsTradeoff": "Comparison of factory locations, proximity to sea ports (JNPT, Mundra, Chennai), expressway access, and shipping transit risks",
+  "negotiationTactics": [
+    {
+      "manufacturerId": "mfg-id",
+      "manufacturerName": "mfg-name",
+      "tactics": [
+        "Tactical advice 1 e.g. request pilot batch at premium before 50k run",
+        "Tactical advice 2 e.g. insist on retaining mold ownership in contract"
+      ]
+    }
+  ],
+  "comparativeScores": {
+    "<mfg-id>": {
+      "precision": 92,
+      "toolingEconomy": 85,
+      "speed": 88,
+      "verificationTrust": 94,
+      "logistics": 90
+    }
+  }
+}`;
+
+        const aiResponse = await aiClient.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          },
+        });
+
+        const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
+        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
+      } catch (geminiErr) {
+        console.warn('[BIZOVIST Engine] Gemini compare-manufacturers fallback:', geminiErr);
+      }
+    }
+
+    // High-fidelity deterministic fallback
+    const fallbackComparison = generateHeuristicComparison(manufacturers, project);
+    return res.json({ success: true, data: fallbackComparison, engine: 'bizovist-engine' });
+  } catch (error: any) {
+    console.error('Error in /api/ai/compare-manufacturers:', error);
+    res.status(500).json({ error: error.message || 'Comparison failed' });
+  }
+});
+
 // Contextual AI Co-Founder Chat Endpoint
 app.post('/api/ai/chat', async (req, res) => {
   try {
@@ -1008,6 +1098,70 @@ function generateCoFounderReply(message: string, context: any) {
   return `Analyzing your manufacturing trajectory based on our telemetry:
 - **Current priority**: Lock your BOM specifications and verify that candidates have in-house QA checkweighers and testing rather than third-party outsourcing.
 - **Next action**: I recommend generating an RFQ spec sheet from your project parameters and requesting 5 golden samples from your top 2 matched facilities.`;
+}
+
+function generateHeuristicComparison(manufacturers: any[], project: any) {
+  if (!manufacturers || manufacturers.length === 0) return null;
+
+  // Find facility with lowest MOQ or standard tooling
+  const lowestMoqMfg = [...manufacturers].sort((a, b) => (a.moq || 100000) - (b.moq || 100000))[0];
+  // Find facility with tightest precision or high-end machinery
+  const highPrecisionMfg = [...manufacturers].sort((a, b) => {
+    const aPrecision = a.machinery?.some((m: any) => m.precisionTolerance?.includes('0.00') || m.precisionTolerance?.includes('micron')) ? 10 : 1;
+    const bPrecision = b.machinery?.some((m: any) => m.precisionTolerance?.includes('0.00') || m.precisionTolerance?.includes('micron')) ? 10 : 1;
+    return bPrecision - aPrecision;
+  })[0];
+  // Find facility with largest capacity
+  const highVolumeMfg = [...manufacturers].sort((a, b) => (parseInt(b.annualCapacity) || 0) - (parseInt(a.annualCapacity) || 0))[0];
+
+  const tactics = manufacturers.map((m) => {
+    const t = [];
+    if (m.moq > 15000) {
+      t.push(`Stated MOQ is ${m.moq.toLocaleString()} units. Propose a paid 2,500-unit pilot validation batch at a slightly higher unit cost before committing to a 50k run.`);
+    } else {
+      t.push(`Low barrier MOQ (${m.moq.toLocaleString()} units). Negotiate tooling amortization across the first 3 scheduled purchase orders.`);
+    }
+    t.push(`Demand explicit tool and die ownership retention in the Master Supply Agreement so you can transfer custom molds without friction.`);
+    t.push(`Require First Article Inspection Reports (FAIR / AS9102) with optical CMM verification before release.`);
+    return {
+      manufacturerId: m.id,
+      manufacturerName: m.name,
+      tactics: t,
+    };
+  });
+
+  const scores: Record<string, any> = {};
+  manufacturers.forEach((m) => {
+    scores[m.id] = {
+      precision: m.machinery?.some((x: any) => x.precisionTolerance?.includes('0.00') || x.precisionTolerance?.includes('micron')) ? 96 : 88,
+      toolingEconomy: m.moq < 10000 ? 94 : 82,
+      speed: m.leadTimeAvgWeeks <= 4 ? 95 : 84,
+      verificationTrust: m.verificationLevel === 'verified_facility' ? 98 : 86,
+      logistics: m.nearestPort?.includes('JNPT') || m.nearestPort?.includes('Mundra') ? 94 : 85,
+    };
+  });
+
+  return {
+    executiveRecommendation: `Head-to-head analysis of ${manufacturers.map((m) => m.name).join(' vs ')} for ${project?.title || 'your manufacturing project'}: For initial tooling budget and pilot batch agility, ${lowestMoqMfg.name} is your strongest launch partner. If sub-micron tolerances and aerospace/medical certification are non-negotiable, prioritize ${highPrecisionMfg.name}.`,
+    winnerForLowNre: {
+      manufacturerId: lowestMoqMfg.id,
+      manufacturerName: lowestMoqMfg.name,
+      reason: `Lowest entry threshold (MOQ ${lowestMoqMfg.moq?.toLocaleString() || 'Flexible'} units) with fast turnaround pilot sampling policy (${lowestMoqMfg.samplePolicy || 'Rapid sampling'}).`,
+    },
+    winnerForHighPrecision: {
+      manufacturerId: highPrecisionMfg.id,
+      manufacturerName: highPrecisionMfg.name,
+      reason: `Superior installed metrology and multi-axis CNC/tooling verified with tolerances down to ${highPrecisionMfg.machinery?.[0]?.precisionTolerance || '+/- 0.005mm'}.`,
+    },
+    winnerForVolumeAndSpeed: {
+      manufacturerId: highVolumeMfg.id,
+      manufacturerName: highVolumeMfg.name,
+      reason: `Highest annual manufacturing throughput (${highVolumeMfg.annualCapacity || 'High volume'}) and robust multi-line production redundancy.`,
+    },
+    logisticsTradeoff: `Freight proximity comparison: ${manufacturers.map((m) => `${m.name} (${m.nearestPort || m.location})`).join(' vs ')}. Facilities on the Western Industrial Corridor (JNPT Port) provide lowest container drayage transit friction.`,
+    negotiationTactics: tactics,
+    comparativeScores: scores,
+  };
 }
 
 // Development Vite Middleware setup vs Production static files

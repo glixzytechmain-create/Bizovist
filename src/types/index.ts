@@ -180,3 +180,48 @@ export interface AIAnalysisResult {
   regulatoryConsiderations: string[];
   clarifyingQuestions: string[];
 }
+
+export interface PortLogisticsInfo {
+  portName: string;
+  distanceKm: number;
+  drayageHours: number;
+  corridorName: string;
+  railConnectivity: boolean;
+}
+
+export interface ManufacturerComparisonResult {
+  executiveRecommendation: string;
+  winnerForLowNre: {
+    manufacturerId: string;
+    manufacturerName: string;
+    reason: string;
+  };
+  winnerForHighPrecision: {
+    manufacturerId: string;
+    manufacturerName: string;
+    reason: string;
+  };
+  winnerForVolumeAndSpeed: {
+    manufacturerId: string;
+    manufacturerName: string;
+    reason: string;
+  };
+  logisticsTradeoff: string;
+  negotiationTactics: {
+    manufacturerId: string;
+    manufacturerName: string;
+    tactics: string[];
+  }[];
+  comparativeScores: Record<
+    string,
+    {
+      precision: number;
+      toolingEconomy: number;
+      speed: number;
+      verificationTrust: number;
+      logistics: number;
+    }
+  >;
+  engine?: string;
+}
+

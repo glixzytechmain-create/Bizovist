@@ -1,4 +1,4 @@
-import { AIAnalysisResult } from '../types';
+import { AIAnalysisResult, ManufacturerComparisonResult } from '../types';
 
 export interface SystemStatus {
   status: string;
@@ -11,6 +11,26 @@ export interface SystemStatus {
 }
 
 export const aiService = {
+  async compareManufacturers(
+    manufacturers: any[],
+    project?: any
+  ): Promise<ManufacturerComparisonResult> {
+    const res = await fetch('/api/ai/compare-manufacturers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ manufacturers, project }),
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to run head-to-head comparison');
+    }
+
+    const json = await res.json();
+    return {
+      ...json.data,
+      engine: json.engine,
+    };
+  },
   async getSystemStatus(): Promise<SystemStatus> {
     try {
       const res = await fetch('/api/system/status');
