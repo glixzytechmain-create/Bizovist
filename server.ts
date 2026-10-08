@@ -21,8 +21,8 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 // Initialize API Keys (Server-side proxy with secure secret fallbacks)
-const apiKey = (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith('AIzaSy')) 
-  ? process.env.GEMINI_API_KEY 
+const apiKey = (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim())
+  ? process.env.GEMINI_API_KEY.trim()
   : '';
 const mapsApiKey = process.env.MAPS_API_KEY || 'AIzaSyCo7rPzeTNSVaMC3K-2-y91gRBEXlTzkTQ';
 const sheetsApiKey = process.env.SHEETS_API_KEY || 'AIzaSyA9efVj-nTgACpSJp2_QY77IKEu2lTCQQg';
@@ -43,11 +43,11 @@ if (apiKey) {
 app.get('/api/system/status', (req, res) => {
   res.json({
     status: 'online',
-    version: '1.0.0',
+    version: '2.4.0',
     geminiConfigured: !!apiKey,
     mapsConfigured: !!mapsApiKey,
     sheetsConfigured: !!sheetsApiKey,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.8-flash',
     timestamp: new Date().toISOString(),
   });
 });
@@ -218,7 +218,7 @@ Return a JSON object with this exact shape:
 }`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: userPrompt,
           config: {
             systemInstruction,
@@ -229,7 +229,7 @@ Return a JSON object with this exact shape:
 
         const responseText = aiResponse.text?.trim() || '{}';
         const parsed = JSON.parse(responseText);
-        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Live Gemini call returned temporary condition, activating high-fidelity deterministic engine:', geminiErr);
       }
@@ -270,7 +270,7 @@ Founder Modification Instruction:
 Return the entire updated JSON:`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
             systemInstruction,
@@ -280,7 +280,7 @@ Return the entire updated JSON:`;
         });
 
         const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
-        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
       } catch (err) {
         console.warn('[BIZOVIST Engine] Live Gemini refine-bom error:', err);
       }
@@ -327,7 +327,7 @@ Return a JSON object:
 }`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
@@ -336,7 +336,7 @@ Return a JSON object:
         });
 
         const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
-        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Gemini match call fallback:', geminiErr);
       }
@@ -416,7 +416,7 @@ Return JSON with this exact structure:
 }`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
             systemInstruction,
@@ -426,7 +426,7 @@ Return JSON with this exact structure:
         });
 
         const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
-        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Gemini compare-manufacturers fallback:', geminiErr);
       }
@@ -464,7 +464,7 @@ Guidelines:
 - Never make blind promises. Always remind founders what to demand in sample evaluations and contracts.`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: `User message: ${message}\nConversation History: ${JSON.stringify(history?.slice(-4) || [])}`,
           config: {
             systemInstruction,
@@ -475,7 +475,7 @@ Guidelines:
         return res.json({
           success: true,
           reply: aiResponse.text?.trim() || 'I have analyzed your parameters. Let us inspect the supplier qualification metrics.',
-          engine: 'gemini-2.5-flash',
+          engine: 'gemini-3.8-flash',
         });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Gemini chat call fallback:', geminiErr);
@@ -519,7 +519,7 @@ Return a JSON object:
 }`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
@@ -528,7 +528,7 @@ Return a JSON object:
         });
 
         const parsed = JSON.parse(aiResponse.text?.trim() || '{}');
-        return res.json({ success: true, data: parsed, engine: 'gemini-2.5-flash' });
+        return res.json({ success: true, data: parsed, engine: 'gemini-3.8-flash' });
       } catch (geminiErr) {
         console.warn('[BIZOVIST Engine] Gemini audit call fallback:', geminiErr);
       }
@@ -590,7 +590,7 @@ Return a valid JSON array of discovered facilities:
 ]`;
 
         const aiResponse = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           contents: prompt,
           config: {
             tools: [{ googleSearch: {} }],

@@ -27,79 +27,92 @@ export const AiProductUnderstanding: React.FC = () => {
   } = useApp();
 
   // If no analysis is loaded yet, provide the default high-fidelity analyzed state
-  // If no analysis is loaded yet, provide the default high-fidelity analyzed state
+  // Dynamic analysis state derived from latestAnalysis or activeProject
   const analysis: AIAnalysisResult = latestAnalysis || {
-    projectName: 'Insulated Matte-Black Stainless Steel Shaker Bottle',
+    projectName: activeProject?.title || 'Sparkling Adaptogenic RTD Beverage (250ml Sleek Can)',
     summary:
-      'Double-wall vacuum insulated 24oz stainless steel shaker bottle with leakproof twist-lock spout lid, silent agitator, and durable matte powder-coat finish for fitness brands.',
-    industry: 'Consumer Goods & Fitness Hardware',
-    productCategory: 'Drinkware & Insulated Containers',
-    materials: [
-      '304 Stainless Steel (Body)',
-      '316 Surgical Stainless (Agitator)',
-      'BPA-Free Polypropylene (Lid)',
-      'Food-grade Liquid Silicone (Seals)',
+      activeProject?.summary ||
+      'Cleanroom contract canning for an organic sparkling botanical energy drink in 250ml sleek aluminium cans with liquid nitrogen dosing, tunnel pasteurization, and FSSAI Central compliance.',
+    industry: activeProject?.industry || 'Food & Beverage Processing',
+    productCategory: activeProject?.productCategory || 'RTD Beverage Canning & Bottling',
+    materials: activeProject?.materials || [
+      'Aluminium 3104 Alloy (Can Body)',
+      'Aluminium 5182 Alloy (Can End / Lid)',
+      'BPA-NI Water-Based Protective Polymer Lacquer',
+      'Functional Botanical Liquid Formulation',
     ],
-    processes: [
-      'Deep Drawing & Hydroforming',
-      'Vacuum Brazing / Sealing',
-      'Powder Coating & Laser Engraving',
-      'Multi-Cavity Injection Molding',
+    processes: activeProject?.processes || [
+      'High-Speed Rotary Canning (300 cpm)',
+      'Liquid Nitrogen Headspace Dosing',
+      'Continuous Tunnel Pasteurization (18 PU)',
+      'Automated Double-Seam Video Optical Inspection',
     ],
-    machineryNeeded: [
-      'Hydraulic Deep Drawing Press (500T)',
-      'Rotary Laser Welding System',
-      'High-Vacuum Degassing Furnace',
-      'Electrostatic Powder Spray Line',
+    machineryNeeded: activeProject?.machineryNeeded || [
+      'Ferrum / Krones Rotary Isobaric Can Filler',
+      'Automated Can Double Seamer',
+      'Chart Liquid Nitrogen Doser',
+      'Tunnel Pasteurizer System',
     ],
-    targetMOQ: 10000,
-    moqUnit: 'units',
-    targetUnitCostEstimate: '$3.40 - $4.85 / unit',
-    targetLeadTime: '6-8 weeks',
-    locationPreference: 'India (Pune / Gujarat precision clusters)',
-    requirements: [
-      {
-        name: 'Double-Wall Vacuum Thermal Insulation',
-        status: 'confirmed',
-        note: '24-hour cold retention / 12-hour hot retention with copper vacuum lining',
-      },
-      {
-        name: 'Zero-Leak Hermetic Seal at 1.5 Bar',
-        status: 'confirmed',
-        note: 'Dual food-grade silicone seals with twist-lock latch tested to 1.5 bar internal pressure',
-      },
-      {
-        name: 'Ultra-Durable Matte Black Powder Coating',
-        status: 'confirmed',
-        note: 'Cross-hatch adhesion ASTM D3359 Class 5B and 100-cycle dishwasher safe',
-      },
-      {
-        name: 'Electropolished 304/316 Odor-Free Interior',
-        status: 'likely',
-        note: 'Electropolishing eliminates micro-crevices preventing protein shake residue odor buildup',
-      },
-      {
-        name: 'BPA-Free / FDA 21 CFR / LFGB Certification',
-        status: 'needs_confirmation',
-        note: 'Requires third-party SGS/TÜV food-contact migration test certificate',
-      },
+    targetMOQ: activeProject?.targetMOQ || 15000,
+    moqUnit: activeProject?.moqUnit || 'cans',
+    targetUnitCostEstimate: activeProject?.targetUnitCost || '$0.42 - $0.78 / can',
+    targetLeadTime: activeProject?.targetLeadTime || '4-6 weeks',
+    locationPreference: activeProject?.locationPreference || 'India (Pune / Bengaluru Beverage Corridors)',
+    requirements: (activeProject?.requirements && activeProject.requirements.length > 0)
+      ? activeProject.requirements.map((r) => ({
+          name: r.name,
+          status: r.status,
+          note: r.note,
+        }))
+      : [
+          {
+            name: '12-Month Ambient Shelf-Life via Tunnel Pasteurization',
+            status: 'confirmed',
+            note: 'Target 16-20 Pasteurization Units (PU) to eliminate spoilage organisms without flavor degradation',
+          },
+          {
+            name: 'BPA-NI Internal Protective Barrier Lacquer',
+            status: 'confirmed',
+            note: 'Prevents organic acid attack on aluminium and protects delicate volatile top-notes',
+          },
+          {
+            name: 'Zero-Defect Double Seam Flange Integrity',
+            status: 'confirmed',
+            note: 'Tight overlap (> 1.10 mm) verified via computerized video seam projector every 2 hours',
+          },
+          {
+            name: 'In-Line Liquid Nitrogen Headspace Dosing',
+            status: 'likely',
+            note: 'Pressurizes sleek can to 28-32 PSI preventing sidewall denting in transit',
+          },
+          {
+            name: 'FSSAI Central Co-Packing Manufacturing License',
+            status: 'needs_confirmation',
+            note: 'Must verify co-packer active Central license registration before pilot commercial dispatch',
+          },
+        ],
+    specifications: (activeProject?.specifications && activeProject.specifications.length > 0)
+      ? activeProject.specifications.map((s) => ({
+          dimension: s.dimension,
+          value: s.value,
+          importance: s.importance,
+        }))
+      : [
+          { dimension: 'Fill Volume', value: '250 ml +/- 3 ml', importance: 'critical' },
+          { dimension: 'Brix / Sugar Equivalent', value: '7.8 +/- 0.3 °Bx', importance: 'critical' },
+          { dimension: 'Can Internal Pressure', value: '26 - 32 PSI at 20°C ambient', importance: 'critical' },
+          { dimension: 'Dissolved Oxygen (DO)', value: '< 50 ppb post-nitrogen flush', importance: 'high' },
+        ],
+    regulatoryConsiderations: activeProject?.regulatoryConsiderations || [
+      'FSSAI Central Co-Packing Manufacturing License',
+      'ISO 22000 / FSSC 22000 Food Safety System Certification',
+      'FSSAI Packaging Regulations 2018 (Heavy Metal & Lacquer Migration Limits)',
+      'US FDA 21 CFR Part 117 Preventive Controls (if exporting)',
     ],
-    specifications: [
-      { dimension: 'Thermal Insulation Retention', value: '< 10°C cold at 24 hours (tested at 22°C ambient)', importance: 'critical' },
-      { dimension: 'Internal Capacity', value: '750 ml (24 oz) +/- 15 ml', importance: 'critical' },
-      { dimension: 'Powder Coat Thickness', value: '65 µm +/- 10 µm (scratch resistance > 3H pencil)', importance: 'high' },
-      { dimension: 'Drop Shock Resistance', value: '1.2m drop test onto concrete without vacuum loss', importance: 'critical' },
-    ],
-    regulatoryConsiderations: [
-      'FDA 21 CFR 175.300 & LFGB Food Contact Safety',
-      'California Proposition 65 Heavy Metal Compliance (Lead/Cadmium Free)',
-      'ISO 9001:2015 Quality Management System at Production Facility',
-      'BPA/BPS-Free Certification on all Polypropylene & Silicone components',
-    ],
-    clarifyingQuestions: [
-      'Do you require automated in-line vacuum testing machines (thermal sensor drop check) for 100% of units?',
-      'What is your standard tooling lead time for custom PP lid mold sampling (T1 samples)?',
-      'Can you provide automated rotary laser etching for individual founder logos in-house?',
+    clarifyingQuestions: activeProject?.keyQuestionsForManufacturers || [
+      'Will your product require custom dry-offset printed cans (50k MOQ) or digitally printed shrink sleeves (15k MOQ) for the pilot batch?',
+      'Do you require cold-fill carbonation or still liquid with cryogenic nitrogen dosing?',
+      'What is your CIP changeover time between flavor variants?',
     ],
   };
 

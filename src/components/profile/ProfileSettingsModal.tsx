@@ -99,6 +99,52 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           </div>
         </div>
 
+        {/* Gemini API Key Configuration */}
+        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-white/50 uppercase text-[10px] flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-[#FF5533]" />
+              <span>Gemini API Key & Model Grounding</span>
+            </span>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold">
+              GEMINI 3.8 FLASH
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-white/60">
+              Live Google Search Grounding and direct Gemini reasoning use this key. You can supply your custom API key or use the active system key.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                placeholder="Paste Gemini API Key (AQ.Ab... or AIzaSy...)"
+                defaultValue={typeof window !== 'undefined' ? localStorage.getItem('bizovist_gemini_api_key') || '' : ''}
+                id="customGeminiKeyInput"
+                className="flex-1 bg-black/40 border border-white/[0.1] rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#FF5533]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById('customGeminiKeyInput') as HTMLInputElement;
+                  if (input && input.value.trim()) {
+                    localStorage.setItem('bizovist_gemini_api_key', input.value.trim());
+                    refreshSystemStatus();
+                    alert('Gemini API key saved! Live Google Search Grounding active.');
+                  } else {
+                    localStorage.removeItem('bizovist_gemini_api_key');
+                    refreshSystemStatus();
+                    alert('Reverted to platform default Gemini API key.');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-[#FF5533] text-white font-semibold text-xs hover:brightness-110 transition shrink-0"
+              >
+                Save Key
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Role Preference */}
         <div className="space-y-2">
           <span className="text-xs font-mono uppercase text-white/40 font-semibold">

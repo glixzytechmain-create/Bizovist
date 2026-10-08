@@ -10,18 +10,27 @@ export interface SystemStatus {
   timestamp: string;
 }
 
-const GEMINI_API_KEY =
-  (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) ||
-  'AIzaSyCObixjxQSxuENl3vY5pDdxbaD9MLiut5M';
+export function getActiveGeminiKey(): string {
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem('bizovist_gemini_api_key');
+    if (local && local.trim()) return local.trim();
+  }
+  return (
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
+    (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) ||
+    ''
+  );
+}
 
-// Direct Gemini 2.5 Flash client for client-side and static hosting execution
+// Direct Gemini 3.8 Flash client for client-side and static hosting execution
 async function callDirectGemini(
   prompt: string,
   systemInstruction?: string,
   tools?: any[],
   forceJson: boolean = true
 ): Promise<{ text: string; parsed: any; groundingMetadata?: any }> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const apiKey = getActiveGeminiKey();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
 
   const body: any = {
     contents: [
@@ -340,11 +349,11 @@ export const aiService = {
 
     return {
       status: 'online',
-      version: '1.0.0',
-      geminiConfigured: !!GEMINI_API_KEY,
+      version: '2.4.0',
+      geminiConfigured: !!getActiveGeminiKey(),
       mapsConfigured: true,
       sheetsConfigured: true,
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       timestamp: new Date().toISOString(),
     };
   },
@@ -445,7 +454,7 @@ Return strictly valid JSON adhering to the specified schema:`;
         return {
           success: true,
           data: result.parsed,
-          engine: 'gemini-2.5-flash-direct',
+          engine: 'gemini-3.8-flash-direct',
         };
       }
     } catch (directErr) {
@@ -500,7 +509,7 @@ Return the entire updated JSON:`;
     return {
       success: true,
       data: result.parsed,
-      engine: 'gemini-2.5-flash-direct',
+      engine: 'gemini-3.8-flash-direct',
     };
   },
 
@@ -544,7 +553,7 @@ Your response:`;
     const result = await callDirectGemini(prompt, systemInstruction, undefined, false);
     return {
       reply: result.text || 'Understood. Let me evaluate the tooling and manufacturing implications.',
-      engine: 'gemini-2.5-flash-direct',
+      engine: 'gemini-3.8-flash-direct',
     };
   },
 
@@ -776,7 +785,7 @@ Perform comparison:`;
     const result = await callDirectGemini(prompt, systemInstruction);
     return {
       ...result.parsed,
-      engine: 'gemini-2.5-flash-direct',
+      engine: 'gemini-3.8-flash-direct',
     };
   },
 

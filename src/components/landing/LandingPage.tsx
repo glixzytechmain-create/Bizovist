@@ -15,23 +15,16 @@ import {
 
 export const LandingPage: React.FC = () => {
   const { setActiveView, setUserRole, analyzeIdea, isInterpreting } = useApp();
-  const [ideaPrompt, setIdeaPrompt] = useState(
-    'I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units.'
-  );
+  const [ideaPrompt, setIdeaPrompt] = useState('');
 
   const samplePrompts = [
     {
-      label: 'Insulated Shaker Bottle',
+      label: 'RTD Beverage Canning',
       prompt:
-        'I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units.',
+        'I want to launch an organic sparkling functional energy drink in 250ml sleek cans with green tea caffeine and adaptogens, initial trial run 20,000 cans in India.',
     },
     {
-      label: 'Aluminium Bottles',
-      prompt:
-        'Find manufacturers in India who can make custom monobloc aluminium bottles with printing and an MOQ around 20,000.',
-    },
-    {
-      label: 'Drone Gimbal Hardware',
+      label: '5-Axis CNC Gimbal',
       prompt:
         'Custom 5-axis CNC machined 6061 aluminium actuator enclosures with Type III hard anodizing, MOQ 1,500 units.',
     },
@@ -39,6 +32,11 @@ export const LandingPage: React.FC = () => {
       label: 'Class 7 Medical Molding',
       prompt:
         'Cleanroom ISO Class 7 injection molded microfluidic cartridges in medical grade polycarbonate with ultrasonic welding.',
+    },
+    {
+      label: 'Bio-Pulp Packaging',
+      prompt:
+        'Thermoformed molded sugarcane bagasse outer protective clamshell with PFAS-free moisture barrier and debossed logo, MOQ 10,000 units.',
     },
   ];
 
@@ -126,7 +124,7 @@ export const LandingPage: React.FC = () => {
             <textarea
               value={ideaPrompt}
               onChange={(e) => setIdeaPrompt(e.target.value)}
-              placeholder="e.g. I want to make an insulated matte-black stainless steel shaker bottle for fitness influencers. Double-wall vacuum, silicone gaskets, powder-coat finish, 10,000 units..."
+              placeholder="e.g. Organic sparkling adaptogenic energy drink in 250ml sleek cans with liquid nitrogen dosing, 20,000 units in India, or 5-axis CNC machined 6061 drone gimbal enclosure..."
               rows={3}
               className="w-full bg-transparent border-0 text-white placeholder-white/30 text-sm sm:text-base focus:ring-0 focus:outline-none resize-none leading-relaxed"
             />

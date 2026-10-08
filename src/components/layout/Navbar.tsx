@@ -53,8 +53,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
           <span className="font-extrabold text-base tracking-tight text-white font-mono group-hover:text-white/90">
             bizovist
           </span>
-          <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-medium uppercase tracking-wider bg-white/[0.06] text-white/50 border border-white/[0.06]">
-            v1.0
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            v2.4 • LIVE
           </span>
         </button>
 
